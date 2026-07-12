@@ -1,7 +1,7 @@
 from pathlib import Path
 
 # Path della radice del progetto, ovvero dove risiede questo file
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # pathlib permette di creare path usando '/'
 annotation_path = BASE_DIR / "annotations" / "list.txt"
