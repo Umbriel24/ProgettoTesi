@@ -2,12 +2,22 @@ from PIL import Image
 from torch.utils.data import Dataset
 import torch
 
+# Classe che eredita torch.utils.data.Dataset. E' un'interfaccia tra OS e modulo di training di pytorch
+# Effettua:
+# 1. Lazy loading dell'immagini in RAM
+# 2. Estrazione micro e macro classe sottoforma di tensori
+# 3. Pre-processing per il ridimensionamento a 224x224
+#
+#
+# 1. __init_ riceve le tuple splittate contenente il path delle immagini
+# 2. __len__ fornisce la grandezza (dimensione) del dataset, ovvero quanti elementi ci sono
+# 3. __getitem__(indice) dato un indice, recupera l'oggetto dal disco. Lo apre con PIL, viene convertito in RGB, applica le trasformazioni e restituisce un
+# dizionario per la gpu
 class PetDataset(Dataset):
 
     # Costruttore
-    def __init__(self, data_list, base_dir, transform=None):
+    def __init__(self, data_list, transform=None):
         self.data_list = data_list
-        self.images_dir = base_dir / "images"
         self.transform = transform
 
 
@@ -18,21 +28,18 @@ class PetDataset(Dataset):
     def __getitem__(self, index):
 
         #Recupero tupla dall'indice
-        image_name, micro_label, macro_label = self.data_list[index]
-
-        # Path immagine
-        img_path = self.images_dir / image_name
+        image_final_path, micro_label, macro_label = self.data_list[index]
 
         # Lazy loading immagine
         try:
-            image = Image.open(img_path).convert("RGB")
+            image = Image.open(image_final_path).convert("RGB")
         except Exception as e:
-            raise FileNotFoundError(f"File non trovato al path {img_path}. Errore {e}")
+            raise FileNotFoundError(f"File non trovato al path {image_final_path}. Errore {e}")
 
         if (self.transform is not None):
             image = self.transform(image)
 
-        # Converte le label in tensori long
+        # Converte le label in tensori long. Servono per le loss functions
         return {
             "image": image,
             "micro_label": torch.tensor(int(micro_label), dtype = torch.long),

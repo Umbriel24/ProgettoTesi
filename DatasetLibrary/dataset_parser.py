@@ -1,15 +1,8 @@
-from pathlib import Path
-
-# Path della radice del progetto, ovvero dove risiede questo file
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# pathlib permette di creare path usando '/'
-annotation_path = BASE_DIR / "annotations" / "list.txt"
-image_path = BASE_DIR /  "images"
+from config import ANNOTATIONS_PATH, IMAGES_PATH
 
 def parse_annotation_file() -> list:
     parsed_data = []
-    with open(annotation_path, mode='r') as list_file:
+    with open(ANNOTATIONS_PATH, mode='r') as list_file:
         for line in list_file:
             # Prende la riga, la pulisce e la splitta
             newLine = clean_and_split_line(line)
@@ -24,7 +17,7 @@ def parse_annotation_file() -> list:
             macro_category = newLine[2]
 
             tupla_micro_macro = (
-                (image_path / image_name),
+                (IMAGES_PATH / image_name),
                 micro_category,
                 macro_category
             )
