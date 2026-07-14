@@ -34,3 +34,12 @@ VAL_TEST_TRANSFORMS = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
 ])
+
+
+# Iperparametri
+NUM_EPOCHS = 50
+LEARNING_RATE = 0.001
+ALPHA = 1.0 # peso loss micro
+BETA = 1.0 # peso loss macro
+BACKBONE = "resnet18"
+PRETRAINED = False

@@ -42,6 +42,6 @@ class PetDataset(Dataset):
         # Converte le label in tensori long. Servono per le loss functions
         return {
             "image": image,
-            "micro_label": torch.tensor(int(micro_label), dtype = torch.long),
-            "macro_label": torch.tensor(int(macro_label), dtype = torch.long)
+            "micro_label": torch.tensor(int(micro_label) - 1, dtype = torch.long),
+            "macro_label": torch.tensor(int(macro_label) - 1, dtype = torch.long)
         }

@@ -1,5 +1,11 @@
 import config
+import torch
 
+from models import MultiTaskPetModel
+from trainer import train_one_epoch
+from trainer import evaluate
+
+from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from DatasetLibrary.dataset_pytorch import PetDataset
 from DatasetLibrary.dataset_parser import parse_annotation_file
@@ -7,13 +13,17 @@ from DatasetLibrary.dataset_splitter import split_parsed_data
 
 
 def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+
     print("TEST PIPELINE INGESTION DATI \n")
 
     # 1. PARSING
     print("1. PARSING: \n")
     try:
         parsed_data = parse_annotation_file()
-        print(f"PARSING COMPLETATO. Estratti {len(parsed_data)} files")
+        print(f"PARSING COMPLETATO. Estratti {len(parsed_data)} campioni")
     except Exception as e:
         print(f" Errore durante il parsing: {e}")
         return
@@ -82,6 +92,36 @@ def main():
     print(f"Tipo dato immagini: {images.dtype}")
     print(f"Tipo micro_label: {micro_label.dtype}")
     print(f"Tipo macro_label: {macro_label.dtype}")
+
+
+    # 6. Modello
+    model = MultiTaskPetModel(backbone_name=config.BACKBONE, pretrained=config.PRETRAINED).to(device)
+    print("Creazione modello completa")
+
+    # 7. Loss e Ottimizzazione
+    criterion_micro = nn.CrossEntropyLoss()
+    criterion_macro = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr= config.LEARNING_RATE)
+
+    print("Creazione loss e Optimizer completa")
+
+    # 8. Training loop
+    best_val_loss = float("inf")
+    history = []
+
+    for epoch in range(config.NUM_EPOCHS):
+        train_loss = train_one_epoch(model, train_loader, optimizer, criterion_micro, criterion_macro, device)
+        val_loss = float(evaluate(model, val_loader, criterion_micro, criterion_macro, device))
+
+        history.append({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
+        print(f" Epoca: {epoch+1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss,
+            torch.save(model.state_dict(), "best_model.pth")
+            print(f"Modello salvato: loss è {val_loss:.4f}")
+
+    print("Training completo")
 
 if __name__ == "__main__":
     main()
