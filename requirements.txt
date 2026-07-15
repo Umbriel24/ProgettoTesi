@@ -31,7 +31,8 @@ scipy==1.18.0
 setuptools==83.0.0
 sympy==1.14.0
 threadpoolctl==3.6.0
-torch==2.13.0
-torchvision==0.28.0
+torch==2.13.0+rocm7.2
+torchvision==0.28.0+rocm7.2
 triton==3.7.1
+triton-rocm==3.7.1
 typing_extensions==4.16.0

@@ -4,8 +4,8 @@ import config
 import torch
 
 from models import MultiTaskPetModel
-from trainer import train_one_epoch
-from trainer import evaluate
+from ModelUtility.trainmodel import train_one_epoch
+from ModelUtility.evaluatemodel import evaluate
 
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
@@ -53,7 +53,7 @@ def main():
     print("Creazione dataset per pytorch")
     train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
     val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS)
-    test_dataset = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
+    _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
     # Dataset Istanziati
     print("Dataset creati correttamente")
 

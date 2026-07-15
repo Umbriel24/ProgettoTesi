@@ -2,7 +2,7 @@ from torchvision import transforms
 from pathlib import Path
 
 # BASE_DIR Restituisce ProgettoPytorch/
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 ANNOTATIONS_PATH = BASE_DIR / "annotations" / "list.txt"
 IMAGES_PATH = BASE_DIR / "images"
