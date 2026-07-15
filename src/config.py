@@ -41,5 +41,4 @@ NUM_EPOCHS = 50
 LEARNING_RATE = 0.001
 ALPHA = 1.0 # peso loss micro
 BETA = 0.5 # peso loss macro
-BACKBONE = "resnet18"
 PRETRAINED = True

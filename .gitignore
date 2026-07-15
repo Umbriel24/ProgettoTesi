@@ -8,3 +8,5 @@ images/
 annotations/
 *.tar.gz
 .DS_Store
+*.csv
+*.pth

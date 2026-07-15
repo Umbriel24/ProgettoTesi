@@ -12,8 +12,25 @@ class MultiTaskPetModel(nn.Module):
             weights = models.ResNet18_Weights.DEFAULT if pretrained else None
             self.backbone = models.resnet18(weights=weights)
             _num_features = self.backbone.fc.in_features
-
             setattr(self.backbone, 'fc', nn.Identity())
+
+        elif backbone_name == "resnet50":
+            weights = models.ResNet50_Weights.DEFAULT if pretrained else None
+            self.backbone = models.resnet50(weights=weights)
+            _num_features = self.backbone.fc.in_features
+            setattr(self.backbone, 'fc', nn.Identity())
+
+        elif backbone_name == "densenet":
+            weights = models.DenseNet201_Weights.DEFAULT if pretrained else None
+            self.backbone = models.densenet201(weights=weights)
+            _num_features = self.backbone.classifier.in_features
+            setattr(self.backbone, 'classifier', nn.Identity())
+
+        elif backbone_name == "efficientnet":
+            weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
+            self.backbone = models.efficientnet_b0(weights=weights)
+            _num_features = self.backbone.classifier[1].in_features
+            setattr(self.backbone, 'classifier', nn.Identity())
 
         else:
             raise ValueError(f"Backbone '{backbone_name}' non supportato.")

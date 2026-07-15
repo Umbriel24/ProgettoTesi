@@ -10,7 +10,6 @@ from models import MultiTaskPetModel
 from DatasetLibrary.dataset_pytorch import PetDataset
 from DatasetLibrary.dataset_parser import parse_annotation_file
 from DatasetLibrary.dataset_splitter import split_parsed_data
-from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import classification_report
 
 
@@ -18,7 +17,7 @@ def TestModello():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Uso del device: {device}")
 
-    model = MultiTaskPetModel(backbone_name=config.BACKBONE, pretrained=False).to(device)
+    model = MultiTaskPetModel(backbone_name="resnet50", pretrained=False).to(device)
 
     model_path = "best_model.pth"
 
