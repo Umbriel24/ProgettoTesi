@@ -1,3 +1,5 @@
+import csv
+
 import config
 import torch
 
@@ -108,6 +110,7 @@ def main():
     # 8. Training loop
     best_val_loss = float("inf")
     history = []
+    patience = 6
 
     for epoch in range(config.NUM_EPOCHS):
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion_micro, criterion_macro, device)
@@ -117,11 +120,26 @@ def main():
         print(f" Epoca: {epoch+1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
-            best_val_loss = val_loss,
+            best_val_loss = val_loss
             torch.save(model.state_dict(), "best_model.pth")
+            patience = 0
             print(f"Modello salvato: loss è {val_loss:.4f}")
+        else:
+            patience += 1
+
+        if patience > 6:
+            print("6 epoche in cui non è aumentata la performance. Fine ciclo di addestramento")
+            break
 
     print("Training completo")
+
+    # Scrittura in CSV
+    fieldnames = ["epoch", "train_loss", "val_loss"]
+
+    with open("history.csv", "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(history)
 
 if __name__ == "__main__":
     main()

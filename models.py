@@ -2,7 +2,7 @@ import torch.nn as nn
 import torchvision.models as models
 
 class MultiTaskPetModel(nn.Module):
-    def __init__(self, backbone_name="resnet18", pretrained=False):
+    def __init__(self, backbone_name="resnet18", pretrained=True):
         ## Classifica contemporanea di Micro-categoria e Macro-categoria
 
         super().__init__()
