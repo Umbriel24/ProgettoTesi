@@ -54,8 +54,8 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentag
 
     dropper = DatasetDropper(train_subset, seed=_seed)
 
-    train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage)
-    print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage*100}%): {len(train_subset)}")
+    train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
+    print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage}%): {len(train_subset)}")
 
 
     # 3. CREAZIONE DATASET dei 3 gruppi
