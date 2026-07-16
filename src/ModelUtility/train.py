@@ -11,9 +11,10 @@ from torch.utils.data.dataloader import DataLoader
 from DatasetLibrary.dataset_pytorch import PetDataset
 from DatasetLibrary.dataset_parser import parse_annotation_file
 from DatasetLibrary.dataset_splitter import split_parsed_data
+from DatasetLibrary.dataset_dropper import DatasetDropper
 
 
-def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool):
+def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentageDrop: int):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _seed = config.SEED
 
@@ -47,6 +48,14 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool):
     except Exception as e:
         print(f"Errore durante lo splitting: {e}")
         return
+
+    target_macro_class = '2'
+    drop_percentage = percentageDrop
+
+    dropper = DatasetDropper(train_subset, seed=_seed)
+
+    train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage)
+    print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage*100}%): {len(train_subset)}")
 
 
     # 3. CREAZIONE DATASET dei 3 gruppi
@@ -115,13 +124,13 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool):
     for epoch in range(config.NUM_EPOCHS):
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion_micro, criterion_macro, device)
         val_loss = float(evaluate(model, val_loader, criterion_micro, criterion_macro, device))
-
         history.append({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
+
         print(f" Epoca: {epoch+1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), "best_model.pth")
+            torch.save(model.state_dict(), f"model_{typeOfNet}_percentage{percentageDrop}.pth")
             patience = 0
             print(f"Modello salvato: loss è {val_loss:.4f}")
         else:
@@ -136,7 +145,7 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool):
     # Scrittura in CSV
     fieldnames = ["epoch", "train_loss", "val_loss", str("seed" + str(_seed))]
 
-    with open(f"{typeOfNet}.csv", "w", newline="") as csvfile:
+    with open(f"{typeOfNet}_percentage{percentageDrop}.csv", "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(history)

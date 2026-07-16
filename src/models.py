@@ -21,8 +21,8 @@ class MultiTaskPetModel(nn.Module):
             setattr(self.backbone, 'fc', nn.Identity())
 
         elif backbone_name == "densenet":
-            weights = models.DenseNet201_Weights.DEFAULT if pretrained else None
-            self.backbone = models.densenet201(weights=weights)
+            weights = models.DenseNet161_Weights.DEFAULT if pretrained else None
+            self.backbone = models.densenet161(weights=weights)
             _num_features = self.backbone.classifier.in_features
             setattr(self.backbone, 'classifier', nn.Identity())
 
