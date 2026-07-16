@@ -13,8 +13,9 @@ from DatasetLibrary.dataset_parser import parse_annotation_file
 from DatasetLibrary.dataset_splitter import split_parsed_data
 
 
-def CreateAndRunTrainingModel(typeOfNet):
+def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    _seed = config.SEED
 
 
 
@@ -29,7 +30,7 @@ def CreateAndRunTrainingModel(typeOfNet):
         print(f" Errore durante il parsing: {e}")
         return
 
-    # 2. SPLITTING
+    # 2. SPLITTING dati nei 3 gruppi
     print("\n SPLITTING IN CORSO...")
     try:
         train_subset, val_subset, test_subset = split_parsed_data(
@@ -37,7 +38,7 @@ def CreateAndRunTrainingModel(typeOfNet):
             train_ratio=config.TRAIN_RATIO,
             val_ratio=config.VAL_RATIO,
             test_ratio=config.TEST_RATIO,
-            seed=config.SEED
+            seed=_seed
         )
         print("Splitting completo:")
         print(f"Campioni TRAIN: {len(train_subset)}")
@@ -48,7 +49,7 @@ def CreateAndRunTrainingModel(typeOfNet):
         return
 
 
-    # 3. CREAZIONE DATASET
+    # 3. CREAZIONE DATASET dei 3 gruppi
     print("Creazione dataset per pytorch")
     train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
     val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS)
@@ -96,7 +97,7 @@ def CreateAndRunTrainingModel(typeOfNet):
 
 
     # 6. Modello
-    model = MultiTaskPetModel(backbone_name="resnet50", pretrained=config.PRETRAINED).to(device)
+    model = MultiTaskPetModel(backbone_name=typeOfNet, pretrained=pre_trained_value).to(device)
     print("Creazione modello completa")
 
     # 7. Loss e Ottimizzazione
@@ -133,7 +134,7 @@ def CreateAndRunTrainingModel(typeOfNet):
     print("Training completo")
 
     # Scrittura in CSV
-    fieldnames = ["epoch", "train_loss", "val_loss"]
+    fieldnames = ["epoch", "train_loss", "val_loss", str("seed" + str(_seed))]
 
     with open(f"{typeOfNet}.csv", "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
