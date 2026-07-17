@@ -1,9 +1,12 @@
-
+import os
 from torchvision import transforms
 from pathlib import Path
 
 # BASE_DIR Restituisce ProgettoPytorch/
-BASE_DIR = Path(__file__).resolve().parent.parent
+if os.path.exists("/kaggle"):
+    BASE_DIR = Path("/kaggle/input/OxfordPet")
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
 
 ANNOTATIONS_PATH = BASE_DIR / "annotations" / "list.txt"
 IMAGES_PATH = BASE_DIR / "images"
