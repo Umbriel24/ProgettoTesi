@@ -7,6 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 ANNOTATIONS_PATH = BASE_DIR / "annotations" / "list.txt"
 IMAGES_PATH = BASE_DIR / "images"
+PERSISTANCE_PATH = BASE_DIR / "persistance"
 
 # IPER PARAMETRI
 SEED = 777
@@ -38,7 +39,7 @@ VAL_TEST_TRANSFORMS = transforms.Compose([
 
 
 # Iperparametri
-NUM_EPOCHS = 50
+NUM_EPOCHS = 1
 LEARNING_RATE = 0.001
 ALPHA = 1.0 # peso loss micro
 BETA = 0.5 # peso loss macro

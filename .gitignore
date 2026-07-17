@@ -10,3 +10,4 @@ annotations/
 .DS_Store
 *.csv
 *.pth
+persistance/

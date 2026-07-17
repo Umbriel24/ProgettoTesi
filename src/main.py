@@ -9,7 +9,7 @@ if __name__ == "__main__":
     print("2: Testa tutti i modelli")
 
 
-    num = input()
+    num = 11
     if int(num) == 1:
         utility_csv.trova_miglior_percentage()
     elif int(num) == 2:

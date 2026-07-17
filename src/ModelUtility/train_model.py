@@ -16,7 +16,6 @@ from DatasetLibrary.dataset_dropper import DatasetDropper
 
 
 def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int):
-
     # Set dei seed.
     _seed = config.SEED
     torch.manual_seed(_seed)
@@ -29,11 +28,6 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
         torch.backends.cudnn.deterministic = True
     else:
         device = torch.device("cpu")
-
-
-
-
-
 
     print("TEST PIPELINE INGESTION DATI \n")
 
@@ -72,7 +66,6 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
     print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage}%): {len(train_subset)}")
 
-
     # 3. CREAZIONE DATASET dei 3 gruppi
     print("Creazione dataset per pytorch")
     train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
@@ -80,7 +73,6 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
     # Dataset Istanziati
     print("Dataset creati correttamente")
-
 
     # 4. DATALOADER
     print("Configurazione dataLoader")
@@ -119,7 +111,6 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     print(f"Tipo micro_label: {micro_label.dtype}")
     print(f"Tipo macro_label: {macro_label.dtype}")
 
-
     # 6. Modello
     model = ModelsCreator(backbone_name=type_of_net, pretrained=pre_trained_value).to(device)
     print("Creazione modello completa")
@@ -127,7 +118,7 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     # 7. Loss e Ottimizzazione
     criterion_micro = nn.CrossEntropyLoss()
     criterion_macro = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr= config.LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
 
     print("Creazione loss e Optimizer completa")
 
@@ -136,18 +127,18 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     history = []
     patience = 6
 
+    # Addestra su 50 epoche. Se in 6 epoche di seguito non migliora, si ferma.
     for epoch in range(config.NUM_EPOCHS):
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion_micro, criterion_macro, device)
         val_loss = float(evaluate_model(model, val_loader, criterion_micro, criterion_macro, device))
         history.append({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
 
-        print(f" Epoca: {epoch+1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
+        print(f" Epoca: {epoch + 1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), f"model_{type_of_net}_percentage{percentage_drop}.pth")
             patience = 0
-            print(f"Modello salvato: loss è {val_loss:.4f}")
+            print(f"Miglior modello ora ha val_loss: {val_loss:.4f}")
         else:
             patience += 1
 
@@ -158,12 +149,8 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     print("Training completo")
 
     # Scrittura in CSV
-    fieldnames = ["epoch", "train_loss", "val_loss", str("seed" + str(_seed))]
-
-    with open(f"{type_of_net}_percentage{percentage_drop}.csv", "w", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(history)
+    save_model(model, type_of_net, percentage_drop, _seed)
+    save_history(history, type_of_net, percentage_drop, _seed)
 
 
 # metodo che traina per un'epoca.
@@ -195,3 +182,17 @@ def train_one_epoch(model, loader, optimizer, criterion_micro, criterion_macro, 
         total_loss += loss.item()
 
     return total_loss / len(loader)
+
+
+def save_model(model, net_name, percentage_drop, seed):
+    torch.save(model.state_dict(), config.PERSISTANCE_PATH / f"model_{net_name}_percentage{percentage_drop}_{seed}.pt")
+
+
+def save_history(history, type_of_net, percentage_drop, seed):
+    # Scrittura in CSV
+    fieldnames = ["epoch", "train_loss", "val_loss"]
+
+    with open(config.PERSISTANCE_PATH /  f"{type_of_net}_percentage{percentage_drop}_{seed}.csv", "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(history)
