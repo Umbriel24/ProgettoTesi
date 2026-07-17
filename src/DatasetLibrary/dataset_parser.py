@@ -5,16 +5,16 @@ def parse_annotation_file() -> list:
     with open(ANNOTATIONS_PATH, mode='r') as list_file:
         for line in list_file:
             # Prende la riga, la pulisce e la splitta
-            newLine = clean_and_split_line(line)
-            if(newLine is None):
+            new_line = clean_and_split_line(line)
+            if new_line is None:
                 continue
 
             # 0 è il nome dell'immagine,
             # 1 la micro-categoria (id della classe )
             # 2 la macro-categoria (1 gatto, 2 cane)
-            image_name = f"{newLine[0]}.jpg"
-            micro_category = newLine[1]
-            macro_category = newLine[2]
+            image_name = f"{new_line[0]}.jpg"
+            micro_category = new_line[1]
+            macro_category = new_line[2]
 
             tupla_micro_macro = (
                 (IMAGES_PATH / image_name),

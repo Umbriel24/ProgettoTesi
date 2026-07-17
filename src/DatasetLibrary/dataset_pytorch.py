@@ -36,7 +36,7 @@ class PetDataset(Dataset):
         except Exception as e:
             raise FileNotFoundError(f"File non trovato al path {image_final_path}. Errore {e}")
 
-        if (self.transform is not None):
+        if self.transform is not None:
             image = self.transform(image)
 
         # Converte le label in tensori long. Servono per le loss functions

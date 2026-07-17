@@ -1,6 +1,9 @@
 from sklearn.model_selection import train_test_split
 
-def split_parsed_data(parsed_data, train_ratio = 0.7, val_ratio = 0.15, test_ratio = 0.15, seed = 777):
+import config
+
+
+def split_parsed_data(parsed_data, train_ratio = 0.7, val_ratio = 0.15, test_ratio = 0.15, seed = config.SEED):
     if abs((train_ratio + val_ratio + test_ratio) - 1.0) >= 0.01:
         raise Exception("La somma dei valori di train, val e test non è 1.0.")
 

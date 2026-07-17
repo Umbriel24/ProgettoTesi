@@ -1,10 +1,11 @@
 import torch
+from sympy import false
+
 import config
 import csv
 
-from models import MultiTaskPetModel
-from ModelUtility.evaluatemodel import evaluate
-from ModelUtility.train_epoch import train_one_epoch
+from modelscreator import ModelsCreator
+from ModelUtility.evaluate_model import evaluate_model
 
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
@@ -14,9 +15,23 @@ from DatasetLibrary.dataset_splitter import split_parsed_data
 from DatasetLibrary.dataset_dropper import DatasetDropper
 
 
-def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentageDrop: int):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int):
+
+    # Set dei seed.
     _seed = config.SEED
+    torch.manual_seed(_seed)
+    torch.cuda.manual_seed(_seed)
+    torch.cuda.manual_seed_all(_seed)
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+    else:
+        device = torch.device("cpu")
+
+
+
 
 
 
@@ -50,7 +65,7 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentag
         return
 
     target_macro_class = '2'
-    drop_percentage = percentageDrop
+    drop_percentage = percentage_drop
 
     dropper = DatasetDropper(train_subset, seed=_seed)
 
@@ -106,7 +121,7 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentag
 
 
     # 6. Modello
-    model = MultiTaskPetModel(backbone_name=typeOfNet, pretrained=pre_trained_value).to(device)
+    model = ModelsCreator(backbone_name=type_of_net, pretrained=pre_trained_value).to(device)
     print("Creazione modello completa")
 
     # 7. Loss e Ottimizzazione
@@ -123,14 +138,14 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentag
 
     for epoch in range(config.NUM_EPOCHS):
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion_micro, criterion_macro, device)
-        val_loss = float(evaluate(model, val_loader, criterion_micro, criterion_macro, device))
+        val_loss = float(evaluate_model(model, val_loader, criterion_micro, criterion_macro, device))
         history.append({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
 
         print(f" Epoca: {epoch+1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), f"model_{typeOfNet}_percentage{percentageDrop}.pth")
+            torch.save(model.state_dict(), f"model_{type_of_net}_percentage{percentage_drop}.pth")
             patience = 0
             print(f"Modello salvato: loss è {val_loss:.4f}")
         else:
@@ -145,7 +160,38 @@ def CreateAndRunTrainingModel(typeOfNet: str, pre_trained_value: bool, percentag
     # Scrittura in CSV
     fieldnames = ["epoch", "train_loss", "val_loss", str("seed" + str(_seed))]
 
-    with open(f"{typeOfNet}_percentage{percentageDrop}.csv", "w", newline="") as csvfile:
+    with open(f"{type_of_net}_percentage{percentage_drop}.csv", "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(history)
+
+
+# metodo che traina per un'epoca.
+def train_one_epoch(model, loader, optimizer, criterion_micro, criterion_macro, device):
+    model.train()  # Addestramento
+    total_loss = 0.0
+
+    for batch in loader:  # Per ogni batch di immagini
+        images = batch["image"].to(device)
+        micro_labels = batch["micro_label"].to(device)
+        macro_labels = batch["macro_label"].to(device)
+
+        # Azzeriamo i gradienti
+        optimizer.zero_grad()
+
+        # forward pass
+        out_micro, out_macro = model(images)
+
+        # calcolo loss, ovvero perdita
+        loss_micro = criterion_micro(out_micro, micro_labels)
+        loss_macro = criterion_macro(out_macro, macro_labels)
+
+        loss = config.ALPHA * loss_micro + config.BETA * loss_macro
+
+        # backward pass e upgrade pesi
+        loss.backward()  # backpropagation
+        optimizer.step()  # aggiornamento pesi
+
+        total_loss += loss.item()
+
+    return total_loss / len(loader)

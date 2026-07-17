@@ -1,10 +1,9 @@
 import torch.nn as nn
 import torchvision.models as models
 
-class MultiTaskPetModel(nn.Module):
-    def __init__(self, backbone_name="resnet18", pretrained=True):
-        ## Classifica contemporanea di Micro-categoria e Macro-categoria
 
+class ModelsCreator(nn.Module):
+    def __init__(self, backbone_name: str, pretrained: bool=True):
         super().__init__()
         self.backbone_name = backbone_name
 
@@ -33,8 +32,7 @@ class MultiTaskPetModel(nn.Module):
             setattr(self.backbone, 'classifier', nn.Identity())
 
         else:
-            raise ValueError(f"Backbone '{backbone_name}' non supportato.")
-
+            raise ValueError(f"Backbone '{backbone_name}' non supportato. Impossibile creare una rete senza un nome valido")
 
         # 2 Heads
         self.micro_head = nn.Linear(_num_features, 37)

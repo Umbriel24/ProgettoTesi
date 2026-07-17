@@ -1,7 +1,7 @@
 import torch
 import config
 
-def evaluate(model, loader, criterion_micro, criterion_macro, device):
+def evaluate_model(model, loader, criterion_micro, criterion_macro, device):
     model.eval()
     total_loss = 0.0
 

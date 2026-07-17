@@ -6,21 +6,19 @@ import config
 
 from torch.utils.data.dataloader import DataLoader
 
-from models import MultiTaskPetModel
+from modelscreator import ModelsCreator
 from DatasetLibrary.dataset_pytorch import PetDataset
 from DatasetLibrary.dataset_parser import parse_annotation_file
 from DatasetLibrary.dataset_splitter import split_parsed_data
 from sklearn.metrics import classification_report
 
 
-def TestModello():
+def TestModello(model_path, seed = 0):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Uso del device: {device}")
 
-    model = MultiTaskPetModel(backbone_name="resnet50", pretrained=False).to(device)
-
-    model_path = "best_model.pth"
-
+    _name = model_path.split("_")[1]
+    model = ModelsCreator(backbone_name=_name, pretrained=False).to(device)
     # Carica il modello salvato e utilizza la gpu
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict=state_dict)
@@ -31,6 +29,9 @@ def TestModello():
 
     print("Modello caricato. Pronto per l'utilizzo")
     _seed=int(random.randrange(0, 10000))
+
+    if seed != 0:
+        _seed = seed
 
         # 1. PARSING
     print("1. PARSING: \n")
@@ -146,7 +147,7 @@ def TestModello():
     report['seed'] = seed
 
     # Scrivi su CSV
-    with open("report_razze.csv", "a", newline="") as csvfile:
+    with open(f"report_{model_path}.csv", "a", newline="") as csvfile:
         fieldnames = ['Classe', 'Precision', 'Recall', 'F1-score', 'Support']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -173,7 +174,4 @@ def TestModello():
             'Support': ''
         })
 
-    print(f"Report salvato in report_razze.csv (seed={seed})")
-
-for i in range(5):
-    TestModello()
+    print(f"Report salvato (seed={seed})")
