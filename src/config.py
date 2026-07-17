@@ -4,7 +4,7 @@ from pathlib import Path
 
 # BASE_DIR Restituisce ProgettoPytorch/
 if os.path.exists("/kaggle"):
-    BASE_DIR = Path("/kaggle/input/OxfordPet")
+    BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
 
