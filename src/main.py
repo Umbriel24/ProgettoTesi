@@ -18,11 +18,11 @@ if __name__ == "__main__":
     else:
 
 
-        create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=0)
-        create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=5)
-        create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=10)
-        create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=15)
-        create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=20)
+        #create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=0)
+        #create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=5)
+        #create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=10)
+        #create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=15)
+        #create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=20)
         create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=25)
         create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=30)
         create_and_train_model("resnet18", pre_trained_value=True, percentage_drop=35)
