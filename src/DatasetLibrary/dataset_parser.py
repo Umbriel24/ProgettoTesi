@@ -1,7 +1,11 @@
-from config import ANNOTATIONS_PATH, IMAGES_PATH
+from config import ANNOTATIONS_PATH, IMAGES_PATH, BASE_DIR
+
 
 def parse_annotation_file() -> list:
     parsed_data = []
+
+    ANNOTATIONS_PATH
+
     with open(ANNOTATIONS_PATH, mode='r') as list_file:
         for line in list_file:
             # Prende la riga, la pulisce e la splitta

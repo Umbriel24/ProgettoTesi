@@ -15,7 +15,7 @@ from DatasetLibrary.dataset_splitter import split_parsed_data
 from DatasetLibrary.dataset_dropper import DatasetDropper
 
 
-def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int):
+def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int, typeofDrop: str = "macro"):
     # Set dei seed.
     _seed = config.SEED
     torch.manual_seed(_seed)
@@ -149,8 +149,8 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     print("Training completo")
 
     # Scrittura in CSV
-    save_model(model, type_of_net, percentage_drop, _seed)
-    save_history(history, type_of_net, percentage_drop, _seed)
+    save_model(model, type_of_net, percentage_drop, _seed, typeofDrop)
+    save_history(history, type_of_net, percentage_drop, _seed, typeofDrop)
 
 
 # metodo che traina per un'epoca.
@@ -184,15 +184,15 @@ def train_one_epoch(model, loader, optimizer, criterion_micro, criterion_macro, 
     return total_loss / len(loader)
 
 
-def save_model(model, net_name, percentage_drop, seed):
-    torch.save(model.state_dict(), config.PERSISTANCE_PATH / f"model_{net_name}_percentage{percentage_drop}_{seed}.pt")
+def save_model(model, net_name, percentage_drop, seed, typeOfDrop):
+    torch.save(model.state_dict(), config.PERSISTANCE_PATH / f"model_{net_name}_percentage{percentage_drop}_{typeOfDrop}_{seed}.pt")
 
 
-def save_history(history, type_of_net, percentage_drop, seed):
+def save_history(history, type_of_net, percentage_drop, seed, typeOfDrop):
     # Scrittura in CSV
     fieldnames = ["epoch", "train_loss", "val_loss"]
 
-    with open(config.PERSISTANCE_PATH /  f"{type_of_net}_percentage{percentage_drop}_{seed}.csv", "w", newline="") as csvfile:
+    with open(config.PERSISTANCE_PATH /  f"{type_of_net}_percentage{percentage_drop}_{typeOfDrop}_{seed}.csv", "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(history)

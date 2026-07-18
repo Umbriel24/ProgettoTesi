@@ -2,15 +2,20 @@ import os
 from torchvision import transforms
 from pathlib import Path
 
+
+
 # BASE_DIR Restituisce ProgettoPytorch/
 if os.path.exists("/kaggle"):
     BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
+    PERSISTANCE_PATH = Path("/kaggle/working")
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
+    PERSISTANCE_PATH = BASE_DIR / "persistance"
 
-ANNOTATIONS_PATH = BASE_DIR / "annotations" / "list.txt"
-IMAGES_PATH = BASE_DIR / "images"
-PERSISTANCE_PATH = BASE_DIR / "persistance"
+# Ricerca ricorsiva
+ANNOTATIONS_PATH = next(BASE_DIR.glob("**/list.txt"))
+temp_IMAGES_PATH = next(BASE_DIR.glob("**/Abyssinian_1.jpg"))
+IMAGES_PATH = temp_IMAGES_PATH.parent
 
 # IPER PARAMETRI
 SEED = 777
