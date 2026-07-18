@@ -47,7 +47,7 @@ VAL_TEST_TRANSFORMS = transforms.Compose([
 
 
 # Iperparametri
-NUM_EPOCHS = 1
+NUM_EPOCHS = 50
 LEARNING_RATE = 0.001
 ALPHA = 1.0 # peso loss micro
 BETA = 0.5 # peso loss macro
