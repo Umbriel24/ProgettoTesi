@@ -1,4 +1,6 @@
 import os
+from os import mkdir
+
 from torchvision import transforms
 from pathlib import Path
 
@@ -7,7 +9,9 @@ from pathlib import Path
 # BASE_DIR Restituisce ProgettoPytorch/
 if os.path.exists("/kaggle"):
     BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
-    PERSISTANCE_PATH = Path("/kaggle/working")
+
+    mkdir("/kaggle/working/persistenza")
+    PERSISTANCE_PATH = Path("/kaggle/working/persistenza")
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
     PERSISTANCE_PATH = BASE_DIR / "persistance"
