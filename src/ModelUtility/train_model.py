@@ -1,3 +1,5 @@
+import os
+
 import torch
 from sympy import false
 
@@ -77,7 +79,7 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     # 4. DATALOADER
     print("Configurazione dataLoader")
 
-    num_worker = 0
+    num_worker = os.cpu_count()
 
     train_loader = DataLoader(
         train_dataset,
