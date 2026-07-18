@@ -10,7 +10,10 @@ from pathlib import Path
 if os.path.exists("/kaggle"):
     BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
 
-    mkdir("/kaggle/working/persistenza")
+    if(os.path.exists("/kaggle/working/persistenza")):
+        pass
+    else:
+        mkdir("/kaggle/working/persistenza")
     PERSISTANCE_PATH = Path("/kaggle/working/persistenza")
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
