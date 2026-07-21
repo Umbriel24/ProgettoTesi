@@ -61,13 +61,16 @@ if __name__ == "__main__":
             create_and_train_model("efficientnet", pre_trained_value=True, percentage_drop=40)
 
 def train_from_macrodrop(subnet_name: str, percentagedrop: int):
-    if i >= 9:
+    if percentagedrop >= 9:
         return
-    else:
-        i = percentagedrop
 
-        for i in range(9):
-            create_and_train_model("subnet_name", pre_trained_value=True, percentage_drop=(i*5))
+    # Parte da percentagedrop e arriva a 8
+    for i in range(percentagedrop, 9):
+        create_and_train_model(
+            subnet_name,  # Senza virgolette
+            pre_trained_value=True,
+            percentage_drop=(i * 5)
+        )
 
 
 
