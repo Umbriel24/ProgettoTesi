@@ -1,3 +1,4 @@
+import glob
 import os
 
 import torch
@@ -17,12 +18,17 @@ from DatasetLibrary.dataset_splitter import split_parsed_data
 from DatasetLibrary.dataset_dropper import DatasetDropper
 
 
-def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int, typeofDrop: str = "macro"):
+def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int, typeofdrop: str = "macro"):
     # Set dei seed.
     _seed = config.SEED
     torch.manual_seed(_seed)
     torch.cuda.manual_seed(_seed)
     torch.cuda.manual_seed_all(_seed)
+
+    t_modelname = f"model_{type_of_net}_percentage{percentage_drop}_{typeofdrop}_{_seed}.pt"
+    if check_model_existence(t_modelname):
+        print("Il modello esiste. skip training ")
+        return
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -65,7 +71,11 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
 
     dropper = DatasetDropper(train_subset, seed=_seed)
 
-    train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
+    if typeofdrop == "micro":
+        train_subset = dropper.drop_micro(target_macro=target_macro_class, percentage=drop_percentage / 100)
+    else:
+        train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
+
     print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage}%): {len(train_subset)}")
 
     # 3. CREAZIONE DATASET dei 3 gruppi
@@ -151,8 +161,8 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     print("Training completo")
 
     # Scrittura in CSV
-    save_model(model, type_of_net, percentage_drop, _seed, typeofDrop)
-    save_history(history, type_of_net, percentage_drop, _seed, typeofDrop)
+    save_model(model, type_of_net, percentage_drop, _seed, typeofdrop)
+    save_history(history, type_of_net, percentage_drop, _seed, typeofdrop)
 
 
 # metodo che traina per un'epoca.
@@ -198,3 +208,12 @@ def save_history(history, type_of_net, percentage_drop, seed, typeOfDrop):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(history)
+
+
+# Check se il modello esiste. Se esiste returna true, altrimenti false
+def check_model_existence(model_name: str):
+        for dirName, subdirList, fileList in os.walk(config.PERSISTANCE_PATH):
+            for fname in fileList:
+                if fname == model_name:
+                    return True
+        return False
