@@ -1,8 +1,5 @@
-import glob
 import os
-
 import torch
-from sympy import false
 
 import config
 import csv
@@ -73,10 +70,18 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
 
     if typeofdrop == "micro":
         train_subset = dropper.drop_micro(target_macro=target_macro_class, percentage=drop_percentage / 100)
+        # Opzione 1: valutiamo SOLO sulle razze che il modello conosce ancora.
+        # Applichiamo lo stesso drop di razze anche a validation e test, rimuovendo
+        # esattamente le razze eliminate del tutto dal training.
+        dropped_breeds = dropper.dropped_micro_ids
+        val_subset = DatasetDropper.remove_micro_classes(val_subset, dropped_breeds, target_macro_class)
+        test_subset = DatasetDropper.remove_micro_classes(test_subset, dropped_breeds, target_macro_class)
+        print(f"Razze rimosse da train/val/test ({len(dropped_breeds)}): {sorted(dropped_breeds)}")
     else:
         train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
 
     print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage}%): {len(train_subset)}")
+    print(f"Campioni VAL DOPO IL DROP: {len(val_subset)}")
 
     # 3. CREAZIONE DATASET dei 3 gruppi
     print("Creazione dataset per pytorch")

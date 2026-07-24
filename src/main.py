@@ -1,6 +1,7 @@
 from ModelUtility.train_model import create_and_train_model
 from ModelUtility.train_model import check_model_existence
 
+import config
 from testmodel import TestModello
 from csvutility import utility_csv
 def main(num: int = 10):
@@ -12,8 +13,13 @@ def main(num: int = 10):
     if int(num) == 1:
         utility_csv.trova_miglior_percentage()
     elif int(num) == 2:
-        for i in range(9):
-            TestModello(f"model_resnet18_percentage{i*5}.pth", 777)
+        nets = ["resnet18", "resnet50", "densenet", "efficientnet"]
+        for net in nets:
+            for typeofdrop in ("micro", "macro"):
+                for i in range(9):
+                    model_name = f"model_{net}_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
+                    if check_model_existence(model_name):
+                        TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
@@ -24,14 +30,9 @@ def main(num: int = 10):
         train_from_microdrop("densenet", 0)
         train_from_macrodrop("densenet", 0)
 
-        train_from_microdrop("resnet18", 0)
-        train_from_macrodrop("resnet18", 0)
-
         train_from_microdrop("efficientnet", 0)
         train_from_macrodrop("efficientnet", 0)
 
-        train_from_microdrop("resnet18", 0)
-        train_from_macrodrop("resnet18", 0)
 
 def train_from_macrodrop(subnet_name: str, percentagedrop: int):
     if percentagedrop >= 9:

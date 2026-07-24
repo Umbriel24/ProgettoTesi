@@ -6,6 +6,9 @@ class DatasetDropper:
     def __init__(self, data_list: list, seed: int = config.SEED):
         self.data_list = list(data_list)
         self.seed = seed
+        # Razze (microclassi) rimosse INTERAMENTE dall'ultimo drop_micro.
+        # Serve per applicare lo stesso drop a validation/test (Opzione 1).
+        self.dropped_micro_ids = set()
 
 
     # Rimuove una percentuale di campioni da macro
@@ -51,6 +54,9 @@ class DatasetDropper:
 
             rng = random.Random(self.seed)
 
+            # Reset delle razze eliminate per questa esecuzione
+            self.dropped_micro_ids = set()
+
             target_samples = [x for x in self.data_list if str(x[2]) == str(target_macro)]
             other_samples = [x for x in self.data_list if str(x[2]) != str(target_macro)]
 
@@ -80,6 +86,8 @@ class DatasetDropper:
                 elif len(samples) <= remaining_budget:
                     # La classe è più piccola del budget rimasto: la eliminiamo TUTTA
                     remaining_budget -= len(samples)
+                    # Razza eliminata del tutto: il modello non la vedrà mai in training.
+                    self.dropped_micro_ids.add(micro_key)
                 else:
                     # La classe è più grande del budget: eliminiamo solo la quota rimanente
                     rng.shuffle(samples)
@@ -88,3 +96,20 @@ class DatasetDropper:
                     remaining_budget = 0 # Budget azzerato
 
             return other_samples + kept_micro_samples
+
+    @staticmethod
+    def remove_micro_classes(data_list: list, micro_ids_to_remove, target_macro: str) -> list:
+        """
+        Rimuove da data_list tutti i campioni delle razze (microclassi) indicate,
+        limitandosi alla macroclasse target. Usato per applicare a validation/test
+        lo STESSO drop di razze applicato al training (Opzione 1: si valuta solo
+        sulle razze che il modello conosce ancora).
+        """
+        if not micro_ids_to_remove:
+            return list(data_list)
+
+        ids = set(micro_ids_to_remove)
+        return [
+            x for x in data_list
+            if not (str(x[2]) == str(target_macro) and x[1] in ids)
+        ]

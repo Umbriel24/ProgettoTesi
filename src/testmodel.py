@@ -1,4 +1,5 @@
 import csv
+import os
 import random
 import torch
 
@@ -10,6 +11,7 @@ from modelscreator import ModelsCreator
 from DatasetLibrary.dataset_pytorch import PetDataset
 from DatasetLibrary.dataset_parser import parse_annotation_file
 from DatasetLibrary.dataset_splitter import split_parsed_data
+from DatasetLibrary.dataset_dropper import DatasetDropper
 from sklearn.metrics import classification_report
 
 
@@ -17,7 +19,21 @@ def TestModello(model_path, seed = 0):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Uso del device: {device}")
 
-    _name = model_path.split("_")[1]
+    # Parsing dei metadati dal nome file:
+    # model_{net}_percentage{drop}_{typeofdrop}_{seed}.pt
+    _filename = os.path.basename(str(model_path))
+    _stem = _filename.replace(".pth", "").replace(".pt", "")
+    _parts = _stem.split("_")
+
+    _name = _parts[1]
+    percentage_drop = 0
+    typeofdrop = "macro"
+    try:
+        percentage_drop = int(_parts[2].replace("percentage", ""))
+        typeofdrop = _parts[3]
+    except (IndexError, ValueError):
+        print("Nome modello senza info di drop: valuto sul test set completo.")
+
     model = ModelsCreator(backbone_name=_name, pretrained=False).to(device)
     # Carica il modello salvato e utilizza la gpu
     state_dict = torch.load(model_path, map_location=device)
@@ -60,6 +76,17 @@ def TestModello(model_path, seed = 0):
     except Exception as e:
         print(f"Errore durante lo splitting: {e}")
         return
+
+    # 2b. Per il micro drop rimuoviamo dal TEST le stesse razze non viste in training
+    # (Opzione 1). Le ricostruiamo eseguendo lo stesso drop sullo stesso split+seed.
+    if typeofdrop == "micro" and percentage_drop > 0:
+        target_macro_class = '2'
+        dropper = DatasetDropper(train_subset, seed=_seed)
+        dropper.drop_micro(target_macro=target_macro_class, percentage=percentage_drop / 100)
+        dropped_breeds = dropper.dropped_micro_ids
+        test_subset = DatasetDropper.remove_micro_classes(test_subset, dropped_breeds, target_macro_class)
+        print(f"TEST: rimosse le razze non viste in training ({len(dropped_breeds)}): {sorted(dropped_breeds)}")
+        print(f"Campioni TEST dopo il drop: {len(test_subset)}")
 
         # 3. CREAZIONE DATASET
     print("Creazione dataset per pytorch")
@@ -146,8 +173,8 @@ def TestModello(model_path, seed = 0):
     seed = _seed
     report['seed'] = seed
 
-    # Scrivi su CSV
-    with open(f"report_{model_path}.csv", "a", newline="") as csvfile:
+    # Scrivi su CSV (usa il nome file, non il path completo)
+    with open(config.PERSISTANCE_PATH / f"report_{_stem}.csv", "a", newline="") as csvfile:
         fieldnames = ['Classe', 'Precision', 'Recall', 'F1-score', 'Support']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
