@@ -5,7 +5,7 @@ import config
 
 def zippa_file_kaggle():
     archive_path = config.PERSISTANCE_PATH
-    archive = zipfile.ZipFile("KaggleModels.zip", 'a')
+    archive = zipfile.ZipFile("KaggleModels.zip", 'w')
 
 
     for file in archive_path.iterdir():
@@ -19,7 +19,7 @@ def zippa_file_kaggle():
 # li inseriscen nello zip.
 def zippa_report_file_kaggle():
     archive_path = config.PERSISTANCE_PATH
-    archive = zipfile.ZipFile("KaggleReports.zip", 'a')
+    archive = zipfile.ZipFile("KaggleReports.zip", 'w')
     for file in archive_path.iterdir():
         if file.name.startswith("report"):
             archive.write(file, compress_type=zipfile.ZIP_DEFLATED)
@@ -29,11 +29,8 @@ def zippa_report_file_kaggle():
 
 def zippa_all_csv_file_kaggle():
     archive_path = config.PERSISTANCE_PATH
-    archive = zipfile.ZipFile("KaggleCSV.zip", 'a')
+    archive = zipfile.ZipFile("KaggleCSV.zip", 'w')
 
     for file in archive_path.iterdir():
         if file.name.endswith(".csv"):
             archive.write(file, compress_type=zipfile.ZIP_DEFLATED)
-
-
-zippa_file_kaggle()
