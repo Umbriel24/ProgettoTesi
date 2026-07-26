@@ -1,3 +1,5 @@
+import sys
+
 from ModelUtility.train_model import create_and_train_model
 from ModelUtility.train_model import check_model_existence
 
@@ -59,4 +61,8 @@ def train_from_microdrop(subnet_name: str, percentagedrop: int):
         )
 
 if __name__ == "__main__":
-    main(0)
+    if len(sys.argv) > 1:
+        num = int(sys.argv[1])
+    else:
+        num = 0
+    main(num)
