@@ -34,19 +34,15 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     else:
         device = torch.device("cpu")
 
-    print("TEST PIPELINE INGESTION DATI \n")
 
     # 1. PARSING
-    print("1. PARSING: \n")
     try:
         parsed_data = parse_annotation_file()
-        print(f"PARSING COMPLETATO. Estratti {len(parsed_data)} campioni")
     except Exception as e:
         print(f" Errore durante il parsing: {e}")
         return
 
     # 2. SPLITTING dati nei 3 gruppi
-    print("\n SPLITTING IN CORSO...")
     try:
         train_subset, val_subset, test_subset = split_parsed_data(
             parsed_data=parsed_data,
@@ -55,7 +51,6 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
             test_ratio=config.TEST_RATIO,
             seed=_seed
         )
-        print("Splitting completo:")
         print(f"Campioni TRAIN: {len(train_subset)}")
         print(f"Campioni VAL: {len(val_subset)}")
         print(f"Campioni TEST: {len(test_subset)}")
@@ -84,15 +79,12 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     print(f"Campioni VAL DOPO IL DROP: {len(val_subset)}")
 
     # 3. CREAZIONE DATASET dei 3 gruppi
-    print("Creazione dataset per pytorch")
     train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
     val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS)
     _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
     # Dataset Istanziati
-    print("Dataset creati correttamente")
 
     # 4. DATALOADER
-    print("Configurazione dataLoader")
 
     num_worker = os.cpu_count()
 
@@ -113,20 +105,12 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     )
 
     # 5. Verifica primo batch del train_loader
-    print("Test first batch train_loader")
 
     first_batch = next(iter(train_loader))
 
     images = first_batch["image"]
     micro_label = first_batch["micro_label"]
     macro_label = first_batch["macro_label"]
-
-    print(f"Forma tensore immagini: {images.shape}")
-    print(f"Forma tensore Micro-label: {micro_label.shape}")
-    print(f"Forma tensore Macro-label: {macro_label.shape}")
-    print(f"Tipo dato immagini: {images.dtype}")
-    print(f"Tipo micro_label: {micro_label.dtype}")
-    print(f"Tipo macro_label: {macro_label.dtype}")
 
     # 6. Modello
     model = ModelsCreator(backbone_name=type_of_net, pretrained=pre_trained_value).to(device)
@@ -137,7 +121,7 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     criterion_macro = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
 
-    print("Creazione loss e Optimizer completa")
+    print(f"Creazione loss e Optimizer completa, Inizio training modello {type_of_net} {percentage_drop} {typeofdrop}")
 
     # 8. Training loop
     best_val_loss = float("inf")
