@@ -1,4 +1,5 @@
 from PIL import Image
+from sympy.codegen.ast import none
 from torch.utils.data import Dataset
 import torch
 
@@ -16,9 +17,11 @@ import torch
 class PetDataset(Dataset):
 
     # Costruttore
-    def __init__(self, data_list, transform=None):
+    def __init__(self, data_list, micro_mapping = None, macro_mapping = None, transform=None, ):
         self.data_list = data_list
         self.transform = transform
+        self.micro_mapping = micro_mapping
+        self.macro_mapping = macro_mapping
 
 
     # Ritorna il numero di campioni nel subset
@@ -39,9 +42,20 @@ class PetDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
+        # Rimappatura micro e macrolabel
+        if self.micro_mapping is not None:
+            mapped_micro = self.micro_mapping[str(micro_label)]
+        else:
+            mapped_micro = int(micro_label) - 1
+
+
+        if self.macro_mapping is not None:
+            mapped_macro = self.macro_mapping[str(macro_label)]
+        else:
+            mapped_macro = int(macro_label) - 1
         # Converte le label in tensori long. Servono per le loss functions
         return {
             "image": image,
-            "micro_label": torch.tensor(int(micro_label) - 1, dtype = torch.long),
-            "macro_label": torch.tensor(int(macro_label) - 1, dtype = torch.long)
+            "micro_label": torch.tensor(int(mapped_micro), dtype = torch.long),
+            "macro_label": torch.tensor(int(mapped_macro), dtype = torch.long)
         }

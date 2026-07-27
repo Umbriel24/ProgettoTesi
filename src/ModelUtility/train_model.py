@@ -71,6 +71,7 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
         dropped_breeds = dropper.dropped_micro_ids
         val_subset = DatasetDropper.remove_micro_classes(val_subset, dropped_breeds, target_macro_class)
         test_subset = DatasetDropper.remove_micro_classes(test_subset, dropped_breeds, target_macro_class)
+
         print(f"Razze rimosse da train/val/test ({len(dropped_breeds)}): {sorted(dropped_breeds)}")
     else:
         train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
@@ -78,10 +79,23 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage}%): {len(train_subset)}")
     print(f"Campioni VAL DOPO IL DROP: {len(val_subset)}")
 
-    # 3. CREAZIONE DATASET dei 3 gruppi
-    train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
-    val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS)
-    _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
+    # Estriamo gli ID Univoci e creiamo un dictionary
+    unique_micro = sorted(list(set(sample[1] for sample in train_subset)))
+    micro_mapping = {str(old_id): new_idx for new_idx, old_id in enumerate(unique_micro)}
+    num_micro_classes = len(micro_mapping)
+
+    unique_macro = sorted(list(set(sample[2] for sample in train_subset)))
+    macro_mapping = {str(old_id): new_idx for new_idx, old_id in enumerate(unique_macro)}
+    num_macro_classes = len(macro_mapping)
+    print(f"Classi attive - Micro: {num_micro_classes}, Macro: {num_macro_classes}")
+
+    # 3. CREAZIONE DATASET dei 3 gruppi (Passando i mapping!)
+    train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS, micro_mapping=micro_mapping,
+                               macro_mapping=macro_mapping)
+    val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS, micro_mapping=micro_mapping,
+                             macro_mapping=macro_mapping)
+    _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS, micro_mapping=micro_mapping,
+                   macro_mapping=macro_mapping)
     # Dataset Istanziati
 
     # 4. DATALOADER
@@ -112,8 +126,9 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     micro_label = first_batch["micro_label"]
     macro_label = first_batch["macro_label"]
 
-    # 6. Modello
-    model = ModelsCreator(backbone_name=type_of_net, pretrained=pre_trained_value).to(device)
+    # 6. Modello (Passando il numero dinamico di classi!)
+    model = ModelsCreator(backbone_name=type_of_net, pretrained=pre_trained_value, num_micro_classes=num_micro_classes,
+                          num_macro_classes=num_macro_classes).to(device)
     print("Creazione modello completa")
 
     # 7. Loss e Ottimizzazione

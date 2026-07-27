@@ -3,7 +3,7 @@ import torchvision.models as models
 
 
 class ModelsCreator(nn.Module):
-    def __init__(self, backbone_name: str, pretrained: bool=True):
+    def __init__(self, backbone_name: str, num_micro_classes: int = 2, num_macro_classes: int = 37, pretrained: bool=True, ):
         super().__init__()
         self.backbone_name = backbone_name
 
@@ -35,8 +35,8 @@ class ModelsCreator(nn.Module):
             raise ValueError(f"Backbone '{backbone_name}' non supportato. Impossibile creare una rete senza un nome valido")
 
         # 2 Heads
-        self.micro_head = nn.Linear(_num_features, 37)
-        self.macro_head = nn.Linear(_num_features, 2)
+        self.micro_head = nn.Linear(_num_features, num_micro_classes)
+        self.macro_head = nn.Linear(_num_features, num_macro_classes)
 
     def forward(self, x):
         feature = self.backbone(x)
