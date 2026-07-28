@@ -34,16 +34,6 @@ def TestModello(model_path, seed = 0):
     except (IndexError, ValueError):
         print("Nome modello senza info di drop: valuto sul test set completo.")
 
-    model = ModelsCreator(backbone_name=_name, pretrained=False).to(device)
-    # Carica il modello salvato e utilizza la gpu
-    state_dict = torch.load(model_path, map_location=device)
-    model.load_state_dict(state_dict=state_dict)
-
-    model = model.to(device=device)
-
-    model.eval()
-
-    print("Modello caricato. Pronto per l'utilizzo")
     _seed=int(random.randrange(0, 10000))
 
     if seed != 0:
@@ -79,20 +69,43 @@ def TestModello(model_path, seed = 0):
 
     # 2b. Per il micro drop rimuoviamo dal TEST le stesse razze non viste in training
     # (Opzione 1). Le ricostruiamo eseguendo lo stesso drop sullo stesso split+seed.
+
+    target_macro_class = '2'
+    dropper = DatasetDropper(train_subset, seed=_seed)
+
     if typeofdrop == "micro" and percentage_drop > 0:
-        target_macro_class = '2'
-        dropper = DatasetDropper(train_subset, seed=_seed)
         dropper.drop_micro(target_macro=target_macro_class, percentage=percentage_drop / 100)
         dropped_breeds = dropper.dropped_micro_ids
         test_subset = DatasetDropper.remove_micro_classes(test_subset, dropped_breeds, target_macro_class)
         print(f"TEST: rimosse le razze non viste in training ({len(dropped_breeds)}): {sorted(dropped_breeds)}")
         print(f"Campioni TEST dopo il drop: {len(test_subset)}")
+    else:
+        train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=percentage_drop / 100)
+
+
+    # Creazione mapping dinamico
+    unique_micro = sorted(list(set(sample[1] for sample in train_subset)))
+    micro_mapping = {str(old_id): new_idx for new_idx, old_id in enumerate(unique_micro)}
+    NUM_MICRO = len(micro_mapping)
+
+    unique_macro = sorted(list(set(sample[2] for sample in train_subset)))
+    macro_mapping = {str(old_id): new_idx for new_idx, old_id in enumerate(unique_macro)}
+    NUM_MACRO = len(macro_mapping)
+
+    # Caricamento modello
+    model = ModelsCreator(backbone_name=_name, num_micro_classes=NUM_MICRO, num_macro_classes=NUM_MACRO, pretrained=False).to(device)
+    state_dict = torch.load(model_path, map_location=device)
+    model.load_state_dict(state_dict=state_dict)
+    model.eval()
+    print(f"Modello caricato. Struttura: {NUM_MICRO} micro-classi, {NUM_MACRO} macro-classi.")
+
 
         # 3. CREAZIONE DATASET
     print("Creazione dataset per pytorch")
-    _ = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
-    _ = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS)
-    test_dataset = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
+    _ = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS, micro_mapping=micro_mapping, macro_mapping=macro_mapping)
+    _ = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS, micro_mapping=micro_mapping, macro_mapping=macro_mapping)
+    test_dataset = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS, micro_mapping=micro_mapping, macro_mapping=macro_mapping)
+
 
         # 4. DATALOADER
     print("Configurazione dataLoader")
@@ -165,9 +178,18 @@ def TestModello(model_path, seed = 0):
 
     print("\n--- VERIFICA sklearn ---")
     print("\nVerifica via classification_report (Razze):\n")
-    #print(classification_report(all_targets_micro, all_preds_micro))
 
-    report = classification_report(all_targets_micro, all_preds_micro, output_dict=True, zero_division= 0.0)
+    active_labels = list(range(NUM_MICRO))
+    active_target_names = [f"Razza_{old_id}" for old_id, new_idx in micro_mapping.items()]
+
+    report = classification_report(
+        all_targets_micro,
+        all_preds_micro,
+        labels=active_labels,
+        target_names=active_target_names,
+        output_dict=True,
+        zero_division=0.0
+    )
 
     # Aggiungi il seed al report
     seed = _seed

@@ -166,6 +166,7 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
 
     # Scrittura in CSV
     save_model(model, type_of_net, percentage_drop, _seed, typeofdrop)
+
     save_history(history, type_of_net, percentage_drop, _seed, typeofdrop)
 
 
@@ -204,13 +205,26 @@ def save_model(model, net_name, percentage_drop, seed, typeOfDrop):
     torch.save(model.state_dict(), config.PERSISTANCE_PATH / f"model_{net_name}_percentage{percentage_drop}_{typeOfDrop}_{seed}.pt")
 
 
-def save_history(history, type_of_net, percentage_drop, seed, typeOfDrop):
+def save_history(history, type_of_net, percentage_drop, seed, type_of_drop):
     # Scrittura in CSV
-    fieldnames = ["epoch", "train_loss", "val_loss"]
+    fieldnames = ["seed", "drop_type", "drop_percentage", "epoch", "train_loss", "val_loss"]
+    csv_path = config.PERSISTANCE_PATH / f"history_{type_of_net}.csv"
 
-    with open(config.PERSISTANCE_PATH /  f"{type_of_net}_percentage{percentage_drop}_{typeOfDrop}_{seed}.csv", "w", newline="") as csvfile:
+    with open(csv_path, "a", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+
+        if not csv_path.exists():
+            writer.writeheader()
+
+        for row in history:
+            writer.writerow({
+                "seed": seed,
+                "drop_type": type_of_drop,
+                "drop_percentage": percentage_drop,
+                "epoch": row["epoch"],
+                "train_loss": f"{row['train_loss']:.4f}",
+                "val_loss": f"{row['val_loss']:.4f}"
+            })
         writer.writerows(history)
 
 
