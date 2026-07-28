@@ -26,6 +26,8 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     if check_model_existence(t_modelname):
         print("Il modello esiste. skip training ")
         return
+    else:
+        print(f"Inizio test modello {type_of_net} {percentage_drop} {typeofdrop}")
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -51,82 +53,44 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
             test_ratio=config.TEST_RATIO,
             seed=_seed
         )
-        print(f"Campioni TRAIN: {len(train_subset)}")
-        print(f"Campioni VAL: {len(val_subset)}")
-        print(f"Campioni TEST: {len(test_subset)}")
     except Exception as e:
         print(f"Errore durante lo splitting: {e}")
         return
 
     target_macro_class = '2'
     drop_percentage = percentage_drop
-
     dropper = DatasetDropper(train_subset, seed=_seed)
 
     if typeofdrop == "micro":
         train_subset = dropper.drop_micro(target_macro=target_macro_class, percentage=drop_percentage / 100)
-        # Opzione 1: valutiamo SOLO sulle razze che il modello conosce ancora.
-        # Applichiamo lo stesso drop di razze anche a validation e test, rimuovendo
-        # esattamente le razze eliminate del tutto dal training.
+        # IL VALIDATION E IL TEST SET NON VENGONO PIù TOCCATI! (Open World)
         dropped_breeds = dropper.dropped_micro_ids
-        val_subset = DatasetDropper.remove_micro_classes(val_subset, dropped_breeds, target_macro_class)
-        test_subset = DatasetDropper.remove_micro_classes(test_subset, dropped_breeds, target_macro_class)
-
-        print(f"Razze rimosse da train/val/test ({len(dropped_breeds)}): {sorted(dropped_breeds)}")
+        print(f"Razze rimosse SOLO dal training ({len(dropped_breeds)}): {sorted(dropped_breeds)}")
     else:
         train_subset = dropper.drop_macro(target_macro=target_macro_class, percentage=drop_percentage / 100)
 
     print(f"Campioni TRAINING DOPO IL DROP ({drop_percentage}%): {len(train_subset)}")
-    print(f"Campioni VAL DOPO IL DROP: {len(val_subset)}")
+    print(f"Campioni VAL (Intero, mondo reale): {len(val_subset)}")
 
-    # Estriamo gli ID Univoci e creiamo un dictionary
-    unique_micro = sorted(list(set(sample[1] for sample in train_subset)))
-    micro_mapping = {str(old_id): new_idx for new_idx, old_id in enumerate(unique_micro)}
-    num_micro_classes = len(micro_mapping)
+    # NUMERO FISSO DI CLASSI PER L'OPEN WORLD
+    num_micro_classes = 37
+    num_macro_classes = 2
 
-    unique_macro = sorted(list(set(sample[2] for sample in train_subset)))
-    macro_mapping = {str(old_id): new_idx for new_idx, old_id in enumerate(unique_macro)}
-    num_macro_classes = len(macro_mapping)
-    print(f"Classi attive - Micro: {num_micro_classes}, Macro: {num_macro_classes}")
-
-    # 3. CREAZIONE DATASET dei 3 gruppi (Passando i mapping!)
-    train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS, micro_mapping=micro_mapping,
-                               macro_mapping=macro_mapping)
-    val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS, micro_mapping=micro_mapping,
-                             macro_mapping=macro_mapping)
-    _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS, micro_mapping=micro_mapping,
-                   macro_mapping=macro_mapping)
-    # Dataset Istanziati
+    # 3. CREAZIONE DATASET (Senza mapping dinamico, usiamo i default)
+    train_dataset = PetDataset(data_list=train_subset, transform=config.TRAIN_TRANSFORMS)
+    val_dataset = PetDataset(data_list=val_subset, transform=config.VAL_TEST_TRANSFORMS)
+    _ = PetDataset(data_list=test_subset, transform=config.VAL_TEST_TRANSFORMS)
 
     # 4. DATALOADER
+    num_worker = os.cpu_count() or 0
+    train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=num_worker,
+                              pin_memory=False)
+    val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=num_worker,
+                            pin_memory=False)
 
-    num_worker = os.cpu_count()
+    # 5. Verifica primo batch del train_loader (OLD)
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=config.BATCH_SIZE,
-        shuffle=True,
-        num_workers=num_worker,
-        pin_memory=False
-    )
-
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=config.BATCH_SIZE,
-        shuffle=False,
-        num_workers=num_worker,
-        pin_memory=False
-    )
-
-    # 5. Verifica primo batch del train_loader
-
-    first_batch = next(iter(train_loader))
-
-    images = first_batch["image"]
-    micro_label = first_batch["micro_label"]
-    macro_label = first_batch["macro_label"]
-
-    # 6. Modello (Passando il numero dinamico di classi!)
+    # 6. Modello
     model = ModelsCreator(backbone_name=type_of_net, pretrained=pre_trained_value, num_micro_classes=num_micro_classes,
                           num_macro_classes=num_macro_classes).to(device)
     print("Creazione modello completa")
@@ -136,20 +100,19 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
     criterion_macro = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
 
-    print(f"Creazione loss e Optimizer completa, Inizio training modello {type_of_net} {percentage_drop} {typeofdrop}")
+    print(f"Inizio training modello {type_of_net} {percentage_drop} {typeofdrop}")
 
     # 8. Training loop
     best_val_loss = float("inf")
     history = []
     patience = 6
 
-    # Addestra su 50 epoche. Se in 6 epoche di seguito non migliora, si ferma.
     for epoch in range(config.NUM_EPOCHS):
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion_micro, criterion_macro, device)
         val_loss = float(evaluate_model(model, val_loader, criterion_micro, criterion_macro, device))
         history.append({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
 
-        print(f" Epoca: {epoch + 1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
+        print(f"Epoca: {epoch + 1} / {config.NUM_EPOCHS}, Train loss: {train_loss:.4f}, Val loss: {val_loss:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -162,42 +125,28 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
             print("6 epoche in cui non è aumentata la performance. Fine ciclo di addestramento")
             break
 
-    print("Training completo")
-
-    # Scrittura in CSV
     save_model(model, type_of_net, percentage_drop, _seed, typeofdrop)
-
     save_history(history, type_of_net, percentage_drop, _seed, typeofdrop)
 
 
 # metodo che traina per un'epoca.
 def train_one_epoch(model, loader, optimizer, criterion_micro, criterion_macro, device):
-    model.train()  # Addestramento
+    model.train()
     total_loss = 0.0
-
-    for batch in loader:  # Per ogni batch di immagini
+    for batch in loader:
         images = batch["image"].to(device)
         micro_labels = batch["micro_label"].to(device)
         macro_labels = batch["macro_label"].to(device)
 
-        # Azzeriamo i gradienti
         optimizer.zero_grad()
-
-        # forward pass
         out_micro, out_macro = model(images)
-
-        # calcolo loss, ovvero perdita
         loss_micro = criterion_micro(out_micro, micro_labels)
         loss_macro = criterion_macro(out_macro, macro_labels)
-
         loss = config.ALPHA * loss_micro + config.BETA * loss_macro
 
-        # backward pass e upgrade pesi
-        loss.backward()  # backpropagation
-        optimizer.step()  # aggiornamento pesi
-
+        loss.backward()
+        optimizer.step()
         total_loss += loss.item()
-
     return total_loss / len(loader)
 
 
@@ -205,33 +154,32 @@ def save_model(model, net_name, percentage_drop, seed, typeOfDrop):
     torch.save(model.state_dict(), config.PERSISTANCE_PATH / f"model_{net_name}_percentage{percentage_drop}_{typeOfDrop}_{seed}.pt")
 
 
-def save_history(history, type_of_net, percentage_drop, seed, type_of_drop):
-    # Scrittura in CSV
-    fieldnames = ["seed", "drop_type", "drop_percentage", "epoch", "train_loss", "val_loss"]
-    csv_path = config.PERSISTANCE_PATH / f"history_{type_of_net}.csv"
+def save_history(history, type_of_net, percentage_drop, seed, typeOfDrop):
+    # Log unificato per architettura (es. resnet18.csv)
+    csv_path = config.PERSISTANCE_PATH / f"{type_of_net}.csv"
+    file_exists = csv_path.exists()
+
+    fieldnames = ["drop_type", "drop_percentage", "seed", "epoch", "train_loss", "val_loss"]
 
     with open(csv_path, "a", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        if not csv_path.exists():
+        if not file_exists:
             writer.writeheader()
 
         for row in history:
             writer.writerow({
-                "seed": seed,
-                "drop_type": type_of_drop,
+                "drop_type": typeOfDrop,
                 "drop_percentage": percentage_drop,
+                "seed": seed,
                 "epoch": row["epoch"],
                 "train_loss": f"{row['train_loss']:.4f}",
                 "val_loss": f"{row['val_loss']:.4f}"
             })
-        writer.writerows(history)
 
 
-# Check se il modello esiste. Se esiste returna true, altrimenti false
 def check_model_existence(model_name: str):
-        for dirName, subdirList, fileList in os.walk(config.PERSISTANCE_PATH):
-            for fname in fileList:
-                if fname == model_name:
-                    return True
-        return False
+    for dirName, subdirList, fileList in os.walk(config.PERSISTANCE_PATH):
+        for fname in fileList:
+            if fname == model_name:
+                return True
+    return False

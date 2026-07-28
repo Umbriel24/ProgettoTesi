@@ -51,6 +51,8 @@ def train_from_macrodrop(subnet_name: str, percentagedrop: int):
 def train_from_microdrop(subnet_name: str, percentagedrop: int):
     if percentagedrop >= 9:
         return
+    if percentagedrop == 0:
+        percentagedrop = 1
 
     for i in range(percentagedrop, 9):
         create_and_train_model(

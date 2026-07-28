@@ -15,25 +15,18 @@ import torch
 # 3. __getitem__(indice) dato un indice, recupera l'oggetto dal disco. Lo apre con PIL, viene convertito in RGB, applica le trasformazioni e restituisce un
 # dizionario per la gpu
 class PetDataset(Dataset):
-
-    # Costruttore
-    def __init__(self, data_list, micro_mapping = None, macro_mapping = None, transform=None, ):
+    def __init__(self, data_list, transform=None, micro_mapping=None, macro_mapping=None):
         self.data_list = data_list
         self.transform = transform
         self.micro_mapping = micro_mapping
         self.macro_mapping = macro_mapping
 
-
-    # Ritorna il numero di campioni nel subset
     def __len__(self):
         return len(self.data_list)
 
     def __getitem__(self, index):
-
-        #Recupero tupla dall'indice
         image_final_path, micro_label, macro_label = self.data_list[index]
 
-        # Lazy loading immagine
         try:
             image = Image.open(image_final_path).convert("RGB")
         except Exception as e:
@@ -42,20 +35,21 @@ class PetDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        # Rimappatura micro e macrolabel
+        # Rimappatura micro classe
         if self.micro_mapping is not None:
             mapped_micro = self.micro_mapping[str(micro_label)]
         else:
             mapped_micro = int(micro_label) - 1
 
-
+        # Rimappatura macro classe
         if self.macro_mapping is not None:
             mapped_macro = self.macro_mapping[str(macro_label)]
         else:
             mapped_macro = int(macro_label) - 1
-        # Converte le label in tensori long. Servono per le loss functions
+
+        # NESSUNA SOTTRAZIONE AGGIUNTIVA QUI!
         return {
             "image": image,
-            "micro_label": torch.tensor(int(mapped_micro), dtype = torch.long),
-            "macro_label": torch.tensor(int(mapped_macro), dtype = torch.long)
+            "micro_label": torch.tensor(int(mapped_micro), dtype=torch.long),
+            "macro_label": torch.tensor(int(mapped_macro), dtype=torch.long)
         }
