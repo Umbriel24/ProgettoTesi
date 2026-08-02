@@ -132,53 +132,64 @@ def TestModello(model_path, seed=0):
     print(f"Macro F1-Score GLOBALE (Open World): {report['macro avg']['f1-score']:.4f}")
     print(f"Macro F1-Score CLASSI NOTE (Specializzazione): {known_macro_f1:.4f}")
 
-    # Scrivi su CSV: Unico file per architettura (es. report_resnet18.csv)
-    csv_path = config.PERSISTANCE_PATH / f"report_{_name}.csv"
-    file_exists = csv_path.exists()
+    # Creiamo un dizionario per mappare l'ID della classe (0-36) al nome reale della razza
+    idx_to_breed = {}
+    for img_path, micro_lbl, _ in parsed_data:
+        filename = os.path.basename(str(img_path))
+        breed_name = filename.rsplit('_', 1)[0]
+        idx_str = str(int(micro_lbl) - 1)
+        idx_to_breed[idx_str] = breed_name
 
-    with open(csv_path, "a", newline="") as csvfile:
-        # Aggiungiamo le colonne di metadati per riconoscere i test nel file unico
-        fieldnames = ['drop_type', 'drop_percentage', 'seed', 'Classe', 'Precision', 'Recall', 'F1-score', 'Support']
+    # --- 1. SCRITTURA REPORT CLASSI (Razza per Razza) ---
+    csv_classi = config.PERSISTANCE_PATH / f"report_{_name}_classi.csv"
+    file_exists_classi = csv_classi.exists()
+
+    with open(csv_classi, "a", newline="") as csvfile:
+        fieldnames = ['drop_type', 'drop_percentage', 'seed', 'Razza', 'Vista_In_Train', 'Precision', 'Recall',
+                      'F1-score', 'Support']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists:
+        if not file_exists_classi:
             writer.writeheader()
 
-        # Scrivi ogni classe
-        for classe, metrics in report.items():
-            if classe in ['accuracy', 'macro avg', 'weighted avg']:
+        for classe_idx, metrics in report.items():
+            if classe_idx in ['accuracy', 'macro avg', 'weighted avg']:
                 continue
             if isinstance(metrics, dict):
+                nome_razza = idx_to_breed.get(classe_idx, f"Classe_{classe_idx}")
+                original_class_id = str(int(classe_idx) + 1)
+                vista = "No" if original_class_id in dropped_breeds else "Si"
+
                 writer.writerow({
                     'drop_type': typeofdrop,
                     'drop_percentage': percentage_drop,
                     'seed': _seed,
-                    'Classe': classe,
+                    'Razza': nome_razza,
+                    'Vista_In_Train': vista,
                     'Precision': f"{metrics['precision']:.4f}",
                     'Recall': f"{metrics['recall']:.4f}",
                     'F1-score': f"{metrics['f1-score']:.4f}",
                     'Support': metrics['support']
                 })
 
-        # Scrivi la doppia metrica come ultime righe del blocco
-        writer.writerow({
-            'drop_type': typeofdrop,
-            'drop_percentage': percentage_drop,
-            'seed': _seed,
-            'Classe': "macro_avg_globale",
-            'Precision': '', 'Recall': '',
-            'F1-score': f"{report['macro avg']['f1-score']:.4f}",
-            'Support': ''
-        })
-        writer.writerow({
-            'drop_type': typeofdrop,
-            'drop_percentage': percentage_drop,
-            'seed': _seed,
-            'Classe': "macro_avg_note",
-            'Precision': '', 'Recall': '',
-            'F1-score': f"{known_macro_f1:.4f}",
-            'Support': ''
-        })
-        # Rimosso il row "seed_{_seed}" singolo, perché ora il seed è integrato in ogni riga
+    # --- 2. SCRITTURA REPORT GLOBALE (Metriche Totali) ---
+    csv_globali = config.PERSISTANCE_PATH / f"report_{_name}_globali.csv"
+    file_exists_glob = csv_globali.exists()
 
-    print(f"Report salvato (seed={_seed})")
+    with open(csv_globali, "a", newline="") as csvfile:
+        fieldnames_glob = ['drop_type', 'drop_percentage', 'seed', 'Accuracy', 'Macro_F1_Globale', 'Macro_F1_Note']
+        writer_glob = csv.DictWriter(csvfile, fieldnames=fieldnames_glob)
+
+        if not file_exists_glob:
+            writer_glob.writeheader()
+
+        writer_glob.writerow({
+            'drop_type': typeofdrop,
+            'drop_percentage': percentage_drop,
+            'seed': _seed,
+            'Accuracy': f"{report.get('accuracy', 0.0):.4f}",
+            'Macro_F1_Globale': f"{report['macro avg']['f1-score']:.4f}",
+            'Macro_F1_Note': f"{known_macro_f1:.4f}"
+        })
+
+    print(f"Report salvato per {_name} (drop: {percentage_drop}%, tipo: {typeofdrop}, seed: {_seed})")
