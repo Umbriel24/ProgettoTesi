@@ -33,7 +33,6 @@ def TestModello(model_path, seed=0):
         print("Nome modello senza info di drop: valuto sul test set completo.")
 
     _seed = int(random.randrange(0, 10000))
-
     if seed != 0:
         _seed = seed
 
@@ -46,7 +45,7 @@ def TestModello(model_path, seed=0):
         print(f" Errore durante il parsing: {e}")
         return
 
-        # 2. SPLITTING
+    # 2. SPLITTING
     print("\n SPLITTING IN CORSO...")
     try:
         train_subset, val_subset, test_subset = split_parsed_data(
@@ -133,12 +132,13 @@ def TestModello(model_path, seed=0):
     print(f"Macro F1-Score GLOBALE (Open World): {report['macro avg']['f1-score']:.4f}")
     print(f"Macro F1-Score CLASSI NOTE (Specializzazione): {known_macro_f1:.4f}")
 
-    # Scrivi su CSV
-    csv_path = config.PERSISTANCE_PATH / f"report_{_stem}.csv"
+    # Scrivi su CSV: Unico file per architettura (es. report_resnet18.csv)
+    csv_path = config.PERSISTANCE_PATH / f"report_{_name}.csv"
     file_exists = csv_path.exists()
 
     with open(csv_path, "a", newline="") as csvfile:
-        fieldnames = ['Classe', 'Precision', 'Recall', 'F1-score', 'Support']
+        # Aggiungiamo le colonne di metadati per riconoscere i test nel file unico
+        fieldnames = ['drop_type', 'drop_percentage', 'seed', 'Classe', 'Precision', 'Recall', 'F1-score', 'Support']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         if not file_exists:
@@ -150,6 +150,9 @@ def TestModello(model_path, seed=0):
                 continue
             if isinstance(metrics, dict):
                 writer.writerow({
+                    'drop_type': typeofdrop,
+                    'drop_percentage': percentage_drop,
+                    'seed': _seed,
                     'Classe': classe,
                     'Precision': f"{metrics['precision']:.4f}",
                     'Recall': f"{metrics['recall']:.4f}",
@@ -157,12 +160,25 @@ def TestModello(model_path, seed=0):
                     'Support': metrics['support']
                 })
 
-        # Scrivi il seed e la doppia metrica come ultime righe
-        writer.writerow({'Classe': f"macro_avg_globale", 'Precision': '', 'Recall': '',
-                         'F1-score': f"{report['macro avg']['f1-score']:.4f}", 'Support': ''})
-        writer.writerow(
-            {'Classe': f"macro_avg_note", 'Precision': '', 'Recall': '', 'F1-score': f"{known_macro_f1:.4f}",
-             'Support': ''})
-        writer.writerow({'Classe': f"seed_{_seed}", 'Precision': '', 'Recall': '', 'F1-score': '', 'Support': ''})
+        # Scrivi la doppia metrica come ultime righe del blocco
+        writer.writerow({
+            'drop_type': typeofdrop,
+            'drop_percentage': percentage_drop,
+            'seed': _seed,
+            'Classe': "macro_avg_globale",
+            'Precision': '', 'Recall': '',
+            'F1-score': f"{report['macro avg']['f1-score']:.4f}",
+            'Support': ''
+        })
+        writer.writerow({
+            'drop_type': typeofdrop,
+            'drop_percentage': percentage_drop,
+            'seed': _seed,
+            'Classe': "macro_avg_note",
+            'Precision': '', 'Recall': '',
+            'F1-score': f"{known_macro_f1:.4f}",
+            'Support': ''
+        })
+        # Rimosso il row "seed_{_seed}" singolo, perché ora il seed è integrato in ogni riga
 
     print(f"Report salvato (seed={_seed})")
