@@ -31,6 +31,32 @@ class ModelsCreator(nn.Module):
             _num_features = self.backbone.classifier[1].in_features
             setattr(self.backbone, 'classifier', nn.Identity())
 
+
+        elif backbone_name == "mlp":
+            # Usiamo AdaptiveAvgPool2d per rimpicciolire il 224x224 in arrivo dal Dataloader
+            # a un 64x64 al volo, in modo da avere esattamente 12.288 features (64*64*3)
+
+            self.backbone = nn.Sequential(
+                nn.AdaptiveAvgPool2d((64, 64)),
+                nn.Flatten(),
+                nn.Linear(12288, 512),
+                nn.BatchNorm1d(512),
+                nn.ReLU(),
+                nn.Dropout(p=0.4),
+                nn.Linear(512, 256),
+                nn.BatchNorm1d(256),
+                nn.ReLU(),
+                nn.Dropout(p=0.4),
+                nn.Linear(256, 128),
+                nn.BatchNorm1d(128),
+                nn.ReLU(),
+                nn.Dropout(p=0.3)
+            )
+
+            # L'ultimo layer del backbone sputa 128 features, che andranno alle 2 teste finali
+
+            _num_features = 128
+
         else:
             raise ValueError(f"Backbone '{backbone_name}' non supportato. Impossibile creare una rete senza un nome valido")
 
