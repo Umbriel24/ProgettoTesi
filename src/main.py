@@ -23,6 +23,12 @@ def main(num: int = 10):
                     if check_model_existence(model_name):
                         TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
     elif int(num) == 3:
+         for typeofdrop in ("micro", "macro"):
+                for i in range(9):
+                    model_name = f"model_mlp_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
+                    if check_model_existence(model_name):
+                        TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
+    elif int(num) == 4:
         net = "mlp"
         for typeofdrop in ("micro", "macro"):
             for i in range(9):
