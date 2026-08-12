@@ -9,6 +9,7 @@ from pathlib import Path
 # BASE_DIR Restituisce ProgettoPytorch/
 if os.path.exists("/kaggle"):
     BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
+    CIFAR_PATH = "/kaggle/input/cifar-100-python/cifar-100-python" # <-- AGGIUNTO PER CIFAR
 
     if(os.path.exists("/kaggle/working/persistenza")):
         pass
@@ -18,11 +19,17 @@ if os.path.exists("/kaggle"):
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
     PERSISTANCE_PATH = BASE_DIR / "persistance"
+    CIFAR_PATH = str(BASE_DIR / "cifar-100-python") # <-- AGGIUNTO PER LOCALE
 
-# Ricerca ricorsiva
-ANNOTATIONS_PATH = next(BASE_DIR.glob("**/list.txt"))
-temp_IMAGES_PATH = next(BASE_DIR.glob("**/Abyssinian_1.jpg"))
-IMAGES_PATH = temp_IMAGES_PATH.parent
+# Ricerca ricorsiva (Modificata con try/except per evitare crash se Pets non è montato)
+try:
+    ANNOTATIONS_PATH = next(BASE_DIR.glob("**/list.txt"))
+    temp_IMAGES_PATH = next(BASE_DIR.glob("**/Abyssinian_1.jpg"))
+    IMAGES_PATH = temp_IMAGES_PATH.parent
+except StopIteration:
+    print("ATTENZIONE: Oxford-Pets non trovato in questa directory. (Ignora se usi solo CIFAR)")
+    ANNOTATIONS_PATH = None
+    IMAGES_PATH = None
 
 # IPER PARAMETRI
 SEED = 777
