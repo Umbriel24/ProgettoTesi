@@ -21,15 +21,15 @@ else:
     PERSISTANCE_PATH = BASE_DIR / "persistance"
     CIFAR_PATH = str(BASE_DIR / "cifar-100-python") # <-- AGGIUNTO PER LOCALE
 
-# Ricerca ricorsiva (Modificata con try/except per evitare crash se Pets non è montato)
-try:
-    ANNOTATIONS_PATH = next(BASE_DIR.glob("**/list.txt"))
-    temp_IMAGES_PATH = next(BASE_DIR.glob("**/Abyssinian_1.jpg"))
+# Ricerca ricorsiva (Modificata con default "None" per evitare StopIteration)
+ANNOTATIONS_PATH = next(BASE_DIR.glob("**/list.txt"), None)
+temp_IMAGES_PATH = next(BASE_DIR.glob("**/Abyssinian_1.jpg"), None)
+
+if temp_IMAGES_PATH is not None:
     IMAGES_PATH = temp_IMAGES_PATH.parent
-except StopIteration:
-    print("ATTENZIONE: Oxford-Pets non trovato in questa directory. (Ignora se usi solo CIFAR)")
-    ANNOTATIONS_PATH = None
+else:
     IMAGES_PATH = None
+    print("ATTENZIONE: Oxford-Pets non trovato in questa directory. (Ignora se usi solo CIFAR)")
 
 # IPER PARAMETRI
 SEED = 777
