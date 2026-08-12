@@ -22,6 +22,19 @@ def main(num: int = 10):
                     model_name = f"model_{net}_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
                     if check_model_existence(model_name):
                         TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
+    elif int(num) == 3:
+         for typeofdrop in ("micro", "macro"):
+                for i in range(9):
+                    model_name = f"model_mlp_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
+                    if check_model_existence(model_name):
+                        TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
+    elif int(num) == 4:
+        net = "mlp"
+        for typeofdrop in ("micro", "macro"):
+            for i in range(9):
+                model_name = f"model_{net}_percentage{i*5}_{typeofdrop}.pt"
+                if check_model_existence(model_name):
+                    TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
@@ -34,6 +47,9 @@ def main(num: int = 10):
 
         train_from_microdrop("efficientnet", 0)
         train_from_macrodrop("efficientnet", 0)
+
+        train_from_microdrop("mlp", 0)
+        train_from_macrodrop("mlp", 0)
 
 
 def train_from_macrodrop(subnet_name: str, percentagedrop: int):
