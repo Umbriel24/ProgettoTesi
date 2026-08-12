@@ -1,86 +1,76 @@
 import sys
-
-from ModelUtility.train_model import create_and_train_model
-from ModelUtility.train_model import check_model_existence
-
+import os
 import config
+from ModelUtility.train_model import create_and_train_model
 from testmodel import TestModello
-from csvutility import utility_csv
-def main(num: int = 10):
-        
-    print("Scrivi il numero per continuare l'esecuzione")
-    print("1: Cerca il miglior modello tra le reti")
-    print("2: Testa tutti i modelli")
-
-    if int(num) == 1:
-        utility_csv.trova_miglior_percentage()
-    elif int(num) == 2:
-        nets = ["resnet18", "resnet50", "densenet", "efficientnet"]
-        for net in nets:
-            for typeofdrop in ("micro", "macro"):
-                for i in range(9):
-                    model_name = f"model_{net}_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
-                    if check_model_existence(model_name):
-                        TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
-    elif int(num) == 3:
-         for typeofdrop in ("micro", "macro"):
-                for i in range(9):
-                    model_name = f"model_mlp_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
-                    if check_model_existence(model_name):
-                        TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
-    elif int(num) == 4:
-        net = "mlp"
-        for typeofdrop in ("micro", "macro"):
-            for i in range(9):
-                model_name = f"model_{net}_percentage{i*5}_{typeofdrop}.pt"
-                if check_model_existence(model_name):
-                    TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
-    else:
-        train_from_microdrop("resnet18", 0)
-        train_from_macrodrop("resnet18", 0)
-
-        train_from_microdrop("resnet50", 0)
-        train_from_macrodrop("resnet50", 0)
-
-        train_from_microdrop("densenet", 0)
-        train_from_macrodrop("densenet", 0)
-
-        train_from_microdrop("efficientnet", 0)
-        train_from_macrodrop("efficientnet", 0)
-
-        train_from_microdrop("mlp", 0)
-        train_from_macrodrop("mlp", 0)
 
 
-def train_from_macrodrop(subnet_name: str, percentagedrop: int):
-    if percentagedrop >= 9:
-        return
+def main():
+    print("=== PROGETTO TESI: MICRO VS MACRO DROP ===")
+    print("Scegli il Dataset su cui operare:")
+    print("1: Oxford-Pets")
+    print("2: CIFAR-100")
 
-    # Parte da percentagedrop e arriva a 8
-    for i in range(percentagedrop, 9):
-        create_and_train_model(
-            subnet_name,
-            pre_trained_value=True,
-            percentage_drop=(i * 5)
-        )
+    try:
+        ds_choice = input("Scrivi 1 o 2: ").strip()
+    except EOFError:
+        ds_choice = "2"  # Fallback per ambienti non interattivi
 
-def train_from_microdrop(subnet_name: str, percentagedrop: int):
-    if percentagedrop >= 9:
-        return
-    if percentagedrop == 0:
-        percentagedrop = 1
+    dataset_name = "cifar100" if ds_choice == "2" else "pets"
 
-    for i in range(percentagedrop, 9):
-        create_and_train_model(
-            subnet_name,
-            pre_trained_value=True,
-            percentage_drop=(i * 5),
-            typeofdrop="micro"
-        )
+    print(f"\nDataset selezionato: {dataset_name.upper()}")
+    print("Scegli l'operazione da eseguire:")
+    print("0: Avvia Training Completo (Baseline + Micro/Macro Drop)")
+    print("1: Avvia Training Singolo Veloce (Solo MLP 5% Micro - Test)")
+    print("2: Testa tutti i modelli salvati per questo dataset")
+
+    try:
+        op_choice = input("Scrivi 0, 1 o 2: ").strip()
+    except EOFError:
+        op_choice = "1"
+
+    if op_choice == "0":
+        reti = ["resnet18", "resnet50", "densenet", "efficientnet"]
+        drops = [5, 10, 15, 20]
+        tipi_drop = ["macro", "micro"]
+
+        print("\n--- INIZIO ADDESTRAMENTI BASELINE (0% Drop) ---")
+        for rete in reti:
+            create_and_train_model(rete, True, 0, "macro", dataset_name=dataset_name)
+
+        print("\n--- INIZIO ADDESTRAMENTI ESPERIMENTO (Drop Variabile) ---")
+        for rete in reti:
+            for drop in drops:
+                for tipo in tipi_drop:
+                    create_and_train_model(rete, True, drop, tipo, dataset_name=dataset_name)
+
+    elif op_choice == "1":
+        print("\n--- TEST VELOCE MLP ---")
+        create_and_train_model("mlp", False, 5, "micro", dataset_name=dataset_name)
+
+    elif op_choice == "2":
+        print(f"\n--- INIZIO TEST MODELLI ({dataset_name.upper()}) ---")
+        modelli_testati = 0
+        if not os.path.exists(config.PERSISTANCE_PATH):
+            print("Cartella persistenza non trovata!")
+            return
+
+        for file in os.listdir(config.PERSISTANCE_PATH):
+            # Filtra solo i file .pt che appartengono al dataset scelto
+            if file.endswith(".pt") and dataset_name in file:
+                percorso_modello = config.PERSISTANCE_PATH / file
+                TestModello(percorso_modello)
+                modelli_testati += 1
+
+        if modelli_testati == 0:
+            print(f"Nessun modello trovato per il dataset {dataset_name}.")
+        else:
+            print(f"Test completato su {modelli_testati} modelli.")
+
 
 if __name__ == "__main__":
+    # Se passo un argomento da riga di comando (es. !python main.py 0) mantengo la retrocompatibilità
     if len(sys.argv) > 1:
-        num = int(sys.argv[1])
+        print("Usa l'interfaccia interattiva senza argomenti: !python main.py")
     else:
-        num = 0
-    main(num)
+        main()
