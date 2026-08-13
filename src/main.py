@@ -7,31 +7,11 @@ from testmodel import TestModello
 
 def main():
     print("=== PROGETTO TESI: MICRO VS MACRO DROP ===")
-    print("Scegli il Dataset su cui operare:")
-    print("1: Oxford-Pets")
-    print("2: CIFAR-100")
-
-    try:
-        ds_choice = input("Scrivi 1 o 2: ").strip()
-    except EOFError:
-        ds_choice = "2"  # Fallback per ambienti non interattivi
-
-    dataset_name = "cifar100" if ds_choice == "2" else "pets"
-
-    print(f"\nDataset selezionato: {dataset_name.upper()}")
-    print("Scegli l'operazione da eseguire:")
-    print("0: Avvia Training Completo (Baseline + Micro/Macro Drop)")
-    print("1: Avvia Training Singolo Veloce (Solo MLP 5% Micro - Test)")
-    print("2: Testa tutti i modelli salvati per questo dataset")
-
-    try:
-        op_choice = input("Scrivi 0, 1 o 2: ").strip()
-    except EOFError:
-        op_choice = "1"
+    op_choice = "0"
 
     if op_choice == "0":
         reti = ["resnet18", "resnet50", "densenet", "efficientnet"]
-        drops = [5, 10, 15, 20]
+        drops = [5, 10, 15, 20, 25, 30, 35, 40]
         tipi_drop = ["macro", "micro"]
 
         print("\n--- INIZIO ADDESTRAMENTI BASELINE (0% Drop) ---")
