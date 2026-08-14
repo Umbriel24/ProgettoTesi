@@ -1,35 +1,41 @@
 import sys
 import os
+import argparse
 import config
 from ModelUtility.train_model import create_and_train_model
 from testmodel import TestModello
 
 
 def main():
+    # Imposta il parser degli argomenti da riga di comando
+    parser = argparse.ArgumentParser(description="Progetto Tesi: Micro vs Macro Drop")
+
+    parser.add_argument(
+        '--dataset',
+        type=str,
+        choices=['pets', 'cifar100'],
+        default='cifar100',
+        help="Scegli il dataset su cui operare (pets o cifar100). Default: cifar100"
+    )
+
+    parser.add_argument(
+        '--op',
+        type=str,
+        choices=['0', '1', '2'],
+        default='1',
+        help="0: Train Completo, 1: Test Veloce MLP, 2: Testa Modelli Salvati. Default: 1"
+    )
+
+    args = parser.parse_args()
+
+    dataset_name = args.dataset
+    op_choice = args.op
+
     print("=== PROGETTO TESI: MICRO VS MACRO DROP ===")
-    print("Scegli il Dataset su cui operare:")
-    print("1: Oxford-Pets")
-    print("2: CIFAR-100")
-
-    try:
-        ds_choice = input("Scrivi 1 o 2: ").strip()
-    except EOFError:
-        ds_choice = "2"  # Fallback per ambienti non interattivi
-
-    dataset_name = "cifar100" if ds_choice == "2" else "pets"
-
-    print(f"\nDataset selezionato: {dataset_name.upper()}")
-    print("Scegli l'operazione da eseguire:")
-    print("0: Avvia Training Completo (Baseline + Micro/Macro Drop)")
-    print("1: Avvia Training Singolo Veloce (Solo MLP 5% Micro - Test)")
-    print("2: Testa tutti i modelli salvati per questo dataset")
-
-    try:
-        op_choice = input("Scrivi 0, 1 o 2: ").strip()
-    except EOFError:
-        op_choice = "1"
+    print(f"Dataset selezionato: {dataset_name.upper()}")
 
     if op_choice == "0":
+        print("Operazione: Avvia Training Completo (Baseline + Micro/Macro Drop)")
         reti = ["resnet18", "resnet50", "densenet", "efficientnet"]
         drops = [5, 10, 15, 20]
         tipi_drop = ["macro", "micro"]
@@ -45,10 +51,12 @@ def main():
                     create_and_train_model(rete, True, drop, tipo, dataset_name=dataset_name)
 
     elif op_choice == "1":
+        print("Operazione: Avvia Training Singolo Veloce (Solo MLP 5% Micro - Test)")
         print("\n--- TEST VELOCE MLP ---")
         create_and_train_model("mlp", False, 5, "micro", dataset_name=dataset_name)
 
     elif op_choice == "2":
+        print("Operazione: Testa tutti i modelli salvati per questo dataset")
         print(f"\n--- INIZIO TEST MODELLI ({dataset_name.upper()}) ---")
         modelli_testati = 0
         if not os.path.exists(config.PERSISTANCE_PATH):
@@ -69,8 +77,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Se passo un argomento da riga di comando (es. !python main.py 0) mantengo la retrocompatibilità
-    if len(sys.argv) > 1:
-        print("Usa l'interfaccia interattiva senza argomenti: !python main.py")
-    else:
-        main()
+    main()
