@@ -9,7 +9,7 @@ from pathlib import Path
 # BASE_DIR Restituisce ProgettoPytorch/
 if os.path.exists("/kaggle"):
     BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
-    CIFAR_PATH = "/kaggle/input/cifar-100-python/cifar-100-python" # <-- AGGIUNTO PER CIFAR
+    CIFAR_PATH = "/kaggle/input/datasets/fedesoriano/cifar100" # <-- PERCORSO CORRETTO CIFAR KAGGLE
 
     if(os.path.exists("/kaggle/working/persistenza")):
         pass
