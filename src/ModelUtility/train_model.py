@@ -1,4 +1,7 @@
 import os
+import random
+from collections import defaultdict
+
 import torch
 import config
 import csv
@@ -66,7 +69,27 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
                 test_ratio=0.0,
                 seed=_seed
             )
+
+            # Prendiamo solo 5000 immagini divise per le classi
             test_subset = test_data
+            random.seed(_seed)
+            class_backet = defaultdict(list)
+
+            #1- Raggruppa per classe
+            for item in train_subset:
+                micro_class = item[1]
+                class_backet[micro_class].append(item)
+
+            train_subset_stratified = []
+            sample_per_class = 50
+
+            #2 peschiamo 50 campioni per classe
+            for c_label, items in class_backet.items():
+                train_subset_stratified.extend(random.sample(items, sample_per_class))
+
+            #3. Shuffle
+            random.shuffle(train_subset_stratified)
+            train_subset = train_subset_stratified
 
             target_macro_class = '0'  # Drop di esempio: la macroclasse 0 (Aquatic mammals)
             num_micro_classes = 100
