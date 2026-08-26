@@ -47,8 +47,8 @@ def main():
 
     if op_choice == "0":
         print("Operazione: Avvia Training Completo (Baseline + Micro/Macro Drop)")
-        reti = ["resnet18", "resnet50", "densenet", "efficientnet"]
-        drops = [5, 10, 15, 20]
+        reti = ["resnet50", "efficientnet"]
+        drops = [5, 10, 15, 20, 25, 30, 35, 40]
         tipi_drop = ["macro", "micro"]
 
         print("\n--- INIZIO ADDESTRAMENTI BASELINE (0% Drop) ---")

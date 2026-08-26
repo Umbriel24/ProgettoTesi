@@ -80,7 +80,7 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
                 class_backet[micro_class].append(item)
 
             train_subset_stratified = []
-            sample_per_class = 50
+            sample_per_class = 200
 
             #2 peschiamo 50 campioni per classe
             for c_label, items in class_backet.items():
