@@ -2,37 +2,48 @@ import sys
 import os
 import argparse
 import config
+import random
+import numpy as np
+import torch
+
 from ModelUtility.train_model import create_and_train_model
 from testmodel import TestModello
 
-
-def main():
-    # Imposta il parser degli argomenti da riga di comando
+def parse_args():
     parser = argparse.ArgumentParser(description="Progetto Tesi: Micro vs Macro Drop")
 
-    parser.add_argument(
-        '--dataset',
-        type=str,
-        choices=['pets', 'cifar100'],
-        default='cifar100',
-        help="Scegli il dataset su cui operare (pets o cifar100). Default: cifar100"
-    )
+    # Aggiungiamo tutti gli argomenti
+    parser.add_argument('--seed', type=int, default=777, help="Seed per la riproducibilità globale")
 
-    parser.add_argument(
-        '--op',
-        type=str,
-        choices=['0', '1', '2'],
-        default='1',
-        help="0: Train Completo, 1: Test Veloce MLP, 2: Testa Modelli Salvati. Default: 1"
-    )
+    parser.add_argument('--dataset', type=str, choices=['pets', 'cifar100'],
+                        default='cifar100', help="Dataset su cui operare")
 
-    args = parser.parse_args()
+    parser.add_argument('--op', type=str, choices=['0', '1', '2'],
+                        default='1', help="0: Train Completo, 1: Test Veloce, 2: Testa Salvati")
+
+    return parser.parse_args()
+
+def set_deterministic_env(seed: int):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    # Backend cuDNN per determinismo hardware
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def main():
+    args = parse_args()
+    set_deterministic_env(args.seed)
 
     dataset_name = args.dataset
     op_choice = args.op
-
-    print("=== PROGETTO TESI: MICRO VS MACRO DROP ===")
-    print(f"Dataset selezionato: {dataset_name.upper()}")
 
     if op_choice == "0":
         print("Operazione: Avvia Training Completo (Baseline + Micro/Macro Drop)")
@@ -42,13 +53,14 @@ def main():
 
         print("\n--- INIZIO ADDESTRAMENTI BASELINE (0% Drop) ---")
         for rete in reti:
-            create_and_train_model(rete, True, 0, "macro", dataset_name=dataset_name)
+            # Ricorda di passare args.seed a questa funzione per salvare i CSV col nome giusto!
+            create_and_train_model(rete, True, 0, "macro", dataset_name=dataset_name, _seed=args.seed)
 
         print("\n--- INIZIO ADDESTRAMENTI ESPERIMENTO (Drop Variabile) ---")
         for rete in reti:
             for drop in drops:
                 for tipo in tipi_drop:
-                    create_and_train_model(rete, True, drop, tipo, dataset_name=dataset_name)
+                    create_and_train_model(rete, True, drop, tipo, dataset_name=dataset_name, _seed=args.seed)
 
     elif op_choice == "1":
         print("Operazione: Avvia Training Singolo Veloce (Solo MLP 5% Micro - Test)")

@@ -23,8 +23,7 @@ from DatasetLibrary.dataset_dropper import DatasetDropper
 
 
 def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage_drop: int, typeofdrop: str = "macro",
-                           dataset_name: str = "pets"):
-    _seed = config.SEED
+                           dataset_name: str = "pets", _seed: int = config.SEED):
     torch.manual_seed(_seed)
     torch.cuda.manual_seed(_seed)
     torch.cuda.manual_seed_all(_seed)
