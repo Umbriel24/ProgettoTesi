@@ -1,8 +1,7 @@
 import csv
 import os
-import random
 import torch
-
+import random
 import config
 
 from torch.utils.data.dataloader import DataLoader
@@ -76,6 +75,26 @@ def TestModello(model_path, seed=0):
                 seed=_seed
             )
             test_subset = test_data
+
+            # ---> INIZIO: SINCRONIZZAZIONE STRATIFICATA (COPIATA DAL TRAIN) <---
+            import random
+            from collections import defaultdict
+
+            random.seed(_seed)
+            class_buckets = defaultdict(list)
+            for item in train_subset:
+                micro_class = item[1]
+                class_buckets[micro_class].append(item)
+
+            train_subset_stratified = []
+            samples_per_class = 50
+            for c_label, items in class_buckets.items():
+                train_subset_stratified.extend(random.sample(items, samples_per_class))
+
+            random.shuffle(train_subset_stratified)
+            train_subset = train_subset_stratified
+            # ---> FINE: SINCRONIZZAZIONE STRATIFICATA <---
+
             target_macro_class = '0'
             NUM_MICRO = 100
             NUM_MACRO = 20
