@@ -16,6 +16,19 @@ if os.path.exists("/kaggle"):
     else:
         mkdir("/kaggle/working/persistenza")
     PERSISTANCE_PATH = Path("/kaggle/working/persistenza")
+elif os.path.exists("/content"):
+    # Stiamo in google colab
+    BASE_DIR = Path("/content")
+
+    # Dataset salvati nella memoria ultra-veloce di Colab
+    DATASET_PATH = Path("/content/datasets/oxfordpet/images")
+    ANNOTATIONS_PATH = Path("/content/datasets/oxfordpet/annotations/list.txt")
+    CIFAR_PATH = "/content/datasets/cifar-100-python" 
+    
+    # Persistenza salvata SU DRIVE per non perdere nulla se la sessione scade
+    PERSISTANCE_PATH = Path("/content/drive/MyDrive/ProgettoTesi/persistenza")
+    os.makedirs(PERSISTANCE_PATH, exist_ok=True)
+    
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
     PERSISTANCE_PATH = BASE_DIR / "persistance"
