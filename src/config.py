@@ -28,7 +28,15 @@ elif os.path.exists("/content"):
     # Persistenza salvata SU DRIVE per non perdere nulla se la sessione scade
     PERSISTANCE_PATH = Path("/content/drive/MyDrive/ProgettoTesi/persistenza")
     os.makedirs(PERSISTANCE_PATH, exist_ok=True)
+elif os.path.exists("/teamspace"):
+    # Stiamo in Lightning AI
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    CIFAR_PATH = str(BASE_DIR / "cifar-100-python") # Modifica se lo scarichi altrove
     
+    # Percorso S3
+    PERSISTANCE_PATH = Path("/teamspace/s3_folders/persistenza")
+    os.makedirs(PERSISTANCE_PATH, exist_ok=True) # <-- Questo lo crea se non esiste!
+
 else:
     BASE_DIR = Path(__file__).resolve().parent.parent
     PERSISTANCE_PATH = BASE_DIR / "persistance"
