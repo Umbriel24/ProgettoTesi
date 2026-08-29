@@ -7,40 +7,35 @@ from pathlib import Path
 
 
 # BASE_DIR Restituisce ProgettoPytorch/
-if os.path.exists("/kaggle"):
+if os.path.exists("/teamspace"):
+    # 1. Stiamo in LIGHTNING AI (Priorità massima qui)
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    CIFAR_PATH = str(BASE_DIR / "cifar-100-python") 
+    PERSISTANCE_PATH = Path("/teamspace/s3_folders/persistenza")
+    os.makedirs(PERSISTANCE_PATH, exist_ok=True)
+
+elif os.path.exists("/kaggle"):
+    # 2. Stiamo in KAGGLE
     BASE_DIR = Path("/kaggle/input/datasets/umbertogargiulo/oxfordpet")
-    CIFAR_PATH = "/kaggle/input/datasets/fedesoriano/cifar100" # <-- PERCORSO CORRETTO CIFAR KAGGLE
-
-    if(os.path.exists("/kaggle/working/persistenza")):
-        pass
-    else:
-        mkdir("/kaggle/working/persistenza")
+    CIFAR_PATH = "/kaggle/input/datasets/fedesoriano/cifar100" 
     PERSISTANCE_PATH = Path("/kaggle/working/persistenza")
-elif os.path.exists("/content"):
-    # Stiamo in google colab
-    BASE_DIR = Path("/content")
+    os.makedirs(PERSISTANCE_PATH, exist_ok=True)
 
-    # Dataset salvati nella memoria ultra-veloce di Colab
+elif os.path.exists("/content"):
+    # 3. Stiamo in GOOGLE COLAB
+    BASE_DIR = Path("/content")
     DATASET_PATH = Path("/content/datasets/oxfordpet/images")
     ANNOTATIONS_PATH = Path("/content/datasets/oxfordpet/annotations/list.txt")
     CIFAR_PATH = "/content/datasets/cifar-100-python" 
-    
-    # Persistenza salvata SU DRIVE per non perdere nulla se la sessione scade
     PERSISTANCE_PATH = Path("/content/drive/MyDrive/ProgettoTesi/persistenza")
     os.makedirs(PERSISTANCE_PATH, exist_ok=True)
-elif os.path.exists("/teamspace"):
-    # Stiamo in Lightning AI
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    CIFAR_PATH = str(BASE_DIR / "cifar-100-python") # Modifica se lo scarichi altrove
-    
-    # Percorso S3
-    PERSISTANCE_PATH = Path("/teamspace/s3_folders/persistenza")
-    os.makedirs(PERSISTANCE_PATH, exist_ok=True) # <-- Questo lo crea se non esiste!
 
 else:
+    # 4. LOCALE
     BASE_DIR = Path(__file__).resolve().parent.parent
-    PERSISTANCE_PATH = BASE_DIR / "persistance"
-    CIFAR_PATH = str(BASE_DIR / "cifar-100-python") # <-- AGGIUNTO PER LOCALE
+    PERSISTANCE_PATH = BASE_DIR / "persistenza"
+    os.makedirs(PERSISTANCE_PATH, exist_ok=True)
+    CIFAR_PATH = str(BASE_DIR / "cifar-100-python")
 
 # Ricerca ricorsiva (Modificata con default "None" per evitare StopIteration)
 ANNOTATIONS_PATH = next(BASE_DIR.glob("**/list.txt"), None)
