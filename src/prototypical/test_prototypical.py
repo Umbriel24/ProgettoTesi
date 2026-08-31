@@ -51,7 +51,6 @@ class TestPrototypical:
 
         # Esecuzione Pipeline Prototipica
         prototypes = self.compute_prototypes(self.support_loader)
-        self.evaluate_prototypes(prototypes, self.val_loader)
         self.risultati = self.evaluate_prototypes(prototypes, self.val_loader)
 
 
