@@ -61,3 +61,45 @@ class TestPrototypical:
         # fa da collo di bottiglia, potremmo dover tagliare anche quello.
         # Ma dato che le tue FC (micro/macro) prendono in input l'output del backbone,
         # azzerando le FC otterrai direttamente i tensori del backbone estrattore!
+
+    def compute_prototypes(self, support_loader):
+        """
+        Calcola i centroidi per ogni classe passando il Support Set nell'estrattore.
+        Restituisce un dizionario: {id_classe: vettore_centroide_medio}
+        """
+        print("Calcolo dei centroidi nello spazio latente...")
+        embeddings_per_class = {}
+
+        with torch.no_grad(): # Disabilita il calcolo dei gradienti (Inferenza pura)
+            for images, labels in support_loader:
+                images = images.to(self.device)
+                
+                # Passaggio in avanti. 
+                # NOTA: ModelsCreator restituisce (out_micro, out_macro).
+                # Avendo disabilitato le FC, entrambi contengono l'embedding del backbone. 
+                # Ne prendiamo uno dei due (il primo).
+                outputs = self.model(images)
+                if isinstance(outputs, tuple):
+                    features = outputs[0] 
+                else:
+                    features = outputs
+                
+                # Sposta su CPU per evitare di saturare la VRAM se il dataset è grande
+                features = features.cpu()
+                
+                # Raggruppa gli embedding per classe
+                for i in range(len(labels)):
+                    label = labels[i].item()
+                    if label not in embeddings_per_class:
+                        embeddings_per_class[label] = []
+                    embeddings_per_class[label].append(features[i])
+
+        # Calcola la media (centroide) per ogni classe
+        prototypes = {}
+        for label, feature_list in embeddings_per_class.items():
+            # Impila i vettori in un tensore 2D e calcola la media lungo l'asse 0
+            stacked_features = torch.stack(feature_list)
+            prototypes[label] = torch.mean(stacked_features, dim=0)
+            
+        print(f"Calcolati i prototipi per {len(prototypes)} classi.")
+        return prototypes

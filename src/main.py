@@ -1,3 +1,4 @@
+from prototypical.data_loader import crea_prototypical_loaders
 from prototypical.test_prototypical import TestPrototypical
 import sys
 
@@ -24,21 +25,23 @@ def main(num: int = 10):
                     if check_model_existence(model_name):
                         TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
     elif int(num) == 3:
-        print("Valutazione con prototypical network")
+        print("Avvio pipeline di valutazione con Prototypical Networks...")
+        
         modelli_salvati = list(config.PERSISTANCE_PATH.glob("*.pt"))
-
         if not modelli_salvati:
-            print("Nessun modello salvato trovato!")
             return
-
-        print(f"Trovati {len(modelli_salvati)} modelli. Inizio procedura prototypical")
+            
+        print("Genero i Dataloader per il Few-Shot Learning...")
+        support_loader, val_loader = crea_prototypical_loaders(K=5)
+        
         for model_path in modelli_salvati:
             print(f"\n--- Analisi Prototipica: {model_path.name} ---")
             try:
-                TestPrototypical(model_path, config.SEED)
+                # Passiamo i loader alla classe!
+                TestPrototypical(model_path, config.SEED, support_loader, val_loader) 
             except ValueError as e:
-                print(f" [SKIPPED] Ignoro il modello: {e}")
-                continue # Intercetta l'errore e passa al file successivo
+                print(f" [SKIPPED] {e}")
+                continue
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
