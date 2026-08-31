@@ -2,7 +2,7 @@ import os
 import random
 import torch
 from collections import defaultdict
-from dataset import DataLoader
+from torch.utils.data import DataLoader
 
 import config
 from DatasetLibrary.dataset_pytorch import PetDataset
