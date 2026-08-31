@@ -14,6 +14,7 @@ class TestPrototypical:
         self.support_loader = support_loader
         self.val_loader = val_loader
         
+        
         print(f"Caricamento di {self.model_path.name}...")
         nome_file = self.model_path.name.lower()
         
@@ -51,6 +52,7 @@ class TestPrototypical:
         # Esecuzione Pipeline Prototipica
         prototypes = self.compute_prototypes(self.support_loader)
         self.evaluate_prototypes(prototypes, self.val_loader)
+        self.risultati = self.evaluate_prototypes(prototypes, self.val_loader)
 
 
     def _extract_dropped_classes(self, nome_file: str, train_subset) -> list:
@@ -159,3 +161,4 @@ class TestPrototypical:
         if self.dropped_classes:
             print(f"Accuracy CLASSI IGNOTE (Zero-Shot / Few-Shot puro): {acc_unseen:.2f}%")
         print("-" * 50)
+        return acc_globale, acc_seen, acc_unseen

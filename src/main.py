@@ -1,3 +1,4 @@
+import csv
 from prototypical.data_loader import crea_prototypical_loaders
 from prototypical.test_prototypical import TestPrototypical
 import sys
@@ -26,22 +27,37 @@ def main(num: int = 10):
                         TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
     elif int(num) == 3:
         print("Avvio pipeline di valutazione con Prototypical Networks...")
-        
         modelli_salvati = list(config.PERSISTANCE_PATH.glob("*.pt"))
         if not modelli_salvati:
             return
             
-        print("Genero i Dataloader per il Few-Shot Learning...")
         support_loader, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
         
-        for model_path in modelli_salvati:
-            print(f"\n--- Analisi Prototipica: {model_path.name} ---")
-            try:
-                # Passiamo i loader alla classe!
-                TestPrototypical(model_path, config.SEED, support_loader, val_loader, base_train_subset) 
-            except ValueError as e:
-                print(f" [SKIPPED] {e}")
-                continue
+        # --- PREPARAZIONE FILE CSV ---
+        csv_path = config.PERSISTANCE_PATH / "prototypical_results.csv"
+        file_exists = csv_path.exists()
+        
+        with open(csv_path, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            # Scrivi l'intestazione solo se il file è appena stato creato
+            if not file_exists:
+                writer.writerow(["Nome Modello", "Acc Globale", "Acc Classi Note", "Acc Classi Ignote"])
+
+            for model_path in modelli_salvati:
+                print(f"\n--- Analisi Prototipica: {model_path.name} ---")
+                try:
+                    tester = TestPrototypical(model_path, config.SEED, support_loader, val_loader, base_train_subset) 
+                    
+                    # Estrai i risultati dalla classe e salvali nel file
+                    acc_glob, acc_seen, acc_unseen = tester.risultati
+                    writer.writerow([model_path.name, f"{acc_glob:.2f}", f"{acc_seen:.2f}", f"{acc_unseen:.2f}"])
+                    
+                    # Forza la scrittura su disco immediata per sicurezza
+                    file.flush() 
+                    
+                except ValueError as e:
+                    print(f" [SKIPPED] {e}")
+                    continue
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
