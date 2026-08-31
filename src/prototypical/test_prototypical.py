@@ -1,7 +1,7 @@
+from modelscreator import ModelsCreator
 import torch
 import torch.nn as nn
 from pathlib import Path
-from ModelUtility.models import ModelsCreator
 import torch.nn.functional as F
 
 class TestPrototypical:
