@@ -33,8 +33,12 @@ def main(num: int = 10):
 
         print(f"Trovati {len(modelli_salvati)} modelli. Inizio procedura prototypical")
         for model_path in modelli_salvati:
-            print(f"Inizio istruzione prototypical{model_path.name}")
-            TestPrototypical(model_path, config.SEED)
+            print(f"\n--- Analisi Prototipica: {model_path.name} ---")
+            try:
+                TestPrototypical(model_path, config.SEED)
+            except ValueError as e:
+                print(f" [SKIPPED] Ignoro il modello: {e}")
+                continue # Intercetta l'errore e passa al file successivo
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
