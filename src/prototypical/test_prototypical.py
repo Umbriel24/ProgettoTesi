@@ -1,3 +1,4 @@
+from modelscreator import ModelsCreator
 import torch
 import torch.nn as nn
 from pathlib import Path
@@ -7,30 +8,60 @@ class TestPrototypical:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = model_path
         self.seed = seed
-
-        # 1. Carica il modello intero e mettilo in modalità valutazione (disabilita Dropout)
-        print(f"Caricamento di {self.model_path.name}...")
-        self.model = torch.load(self.model_path, map_location=self.device)
-        self.model.eval()
-
-        # 2. "Amputa" la testa di classificazione trasformandola in un estrattore
-        self._strip_classifier()
         
-        # (Qui in futuro chiameremo i metodi per estrarre i prototipi e testare)
+        print(f"Caricamento di {self.model_path.name}...")
+        
+        # Estrai il nome dell'architettura dal nome del file (es: "model_resnet18_...")
+        nome_file = self.model_path.name.lower()
+        if "resnet18" in nome_file: net_type = "resnet18"
+        elif "resnet50" in nome_file: net_type = "resnet50"
+        elif "densenet" in nome_file: net_type = "densenet"
+        elif "efficientnet" in nome_file: net_type = "efficientnet"
+        elif "mlp" in nome_file: net_type = "mlp"
+        else: raise ValueError(f"Architettura non riconosciuta dal file: {nome_file}")
+
+        # 1. Crea la struttura della rete base usando il tuo creatore di modelli
+        # Imposto i parametri di classe standard che usi nel main
+        self.model = ModelsCreator(
+            backbone_name=net_type, 
+            pretrained=True, 
+            num_micro_classes=37, 
+            num_macro_classes=2
+        ).to(self.device)
+        
+        # 2. Inietta i pesi salvati (.pt)
+        # Se i pesi sono stati salvati come dizionario, usa load_state_dict
+        pesi = torch.load(self.model_path, map_location=self.device)
+        if isinstance(pesi, dict) and 'state_dict' not in pesi: # È uno state_dict puro
+            self.model.load_state_dict(pesi)
+        elif isinstance(pesi, dict) and 'state_dict' in pesi: # È un checkpoint annidato
+            self.model.load_state_dict(pesi['state_dict'])
+        else: # È stato salvato il modello intero (improbabile dato l'errore precedente, ma safe fallback)
+            self.model = pesi 
+            
+        # 3. Mettilo in valutazione
+        self.model.eval() 
+        
+        # 4. "Amputa" la testa di classificazione trasformandola in un estrattore
+        self._strip_classifier(nome_file)
+        
         print("Estrattore di feature pronto!\n")
 
     def _strip_classifier(self):
         """
-        Sostituisce il layer fully connected finale con una funzione Identità.
-        L'output della rete diventerà l'embedding puro.
+        Sostituisce i layer di classificazione finali con una funzione Identità.
+        Supporta l'architettura multi-task (Micro/Macro) di ModelsCreator.
         """
-        nome_file = self.model_path.name.lower()
+        # Dato che ModelsCreator ha due output (micro e macro),
+        # dobbiamo disabilitarli entrambi per ottenere l'embedding puro.
+        self.model.fc_micro = nn.Identity()
+        self.model.fc_macro = nn.Identity()
         
-        if "resnet" in nome_file:
-            # ResNet18 e ResNet50 usano 'fc'
-            self.model.fc = nn.Identity()
-        elif "efficientnet" in nome_file or "densenet" in nome_file:
-            # EfficientNet e DenseNet usano 'classifier'
-            self.model.classifier = nn.Identity()
-        else:
-            raise ValueError(f"Impossibile determinare l'ultimo layer per {nome_file}")
+        # Se all'interno del ModelsCreator l'ultimo layer del backbone originale 
+        # fa da collo di bottiglia, potremmo dover tagliare anche quello.
+        # Ma dato che le tue FC (micro/macro) prendono in input l'output del backbone,
+        # azzerando le FC otterrai direttamente i tensori del backbone estrattore!
+
+
+
+s
