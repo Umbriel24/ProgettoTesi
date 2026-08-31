@@ -2,10 +2,10 @@ import os
 import random
 import torch
 from collections import defaultdict
-from torch.utils.data import DataLoader
+from dataset import DataLoader
 
 import config
-from ModelUtility.models import PetDataset
+from DatasetLibrary.dataset_pytorch import PetDataset
 from ModelUtility.train_model import parse_annotation_file, split_parsed_data
 
 def crea_prototypical_loaders(K=5):
