@@ -55,18 +55,28 @@ class TestPrototypical:
 
     def _extract_dropped_classes(self, nome_file: str, train_subset) -> list:
         """Estrae i parametri dal nome del file e ricostruisce la lista esatta delle classi eliminate."""
-        # Cerca pattern tipo: percentage10_micro_777
         match = re.search(r"percentage(\d+)_(micro|macro)_(\d+)", nome_file)
-        if match and match.group(2) == "micro":
+        if match:
             perc = int(match.group(1)) / 100
+            tipo_drop = match.group(2)
             file_seed = int(match.group(3))
             
-            # Istanzia il dropper con lo STESSO seed del file
             dropper = DatasetDropper(train_subset, seed=file_seed)
-            # Simuliamo il drop per farci restituire gli ID rimossi
-            dropper.drop_micro(target_macro='2', percentage=perc)
-            print(f"[{nome_file}] Riconosciute {len(dropper.dropped_micro_ids)} classi droppate in fase di training.")
-            return dropper.dropped_micro_ids
+            
+            # Eseguiamo il drop corretto (Micro o Macro) in base al nome del file
+            if tipo_drop == "micro":
+                dropper.drop_micro(target_macro='2', percentage=perc)
+            elif tipo_drop == "macro":
+                dropper.drop_macro(target_macro='2', percentage=perc)
+                
+            # FIX CRITICO: Allineamento ID
+            # Il dropper ci dà le label grezze, ma il PetDataset fa (int(label) - 1)
+            # Applichiamo lo stesso offset per far combaciare i controlli!
+            id_rimossi_allineati = [int(x) - 1 for x in dropper.dropped_micro_ids]
+            
+            print(f"[{nome_file}] Riconosciute {len(id_rimossi_allineati)} classi droppate (Drop {tipo_drop}).")
+            return id_rimossi_allineati
+            
         return []
 
         
