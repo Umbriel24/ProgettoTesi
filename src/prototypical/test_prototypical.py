@@ -61,7 +61,3 @@ class TestPrototypical:
         # fa da collo di bottiglia, potremmo dover tagliare anche quello.
         # Ma dato che le tue FC (micro/macro) prendono in input l'output del backbone,
         # azzerando le FC otterrai direttamente i tensori del backbone estrattore!
-
-
-
-s
