@@ -33,7 +33,7 @@ def main(num: int = 10):
 
         print(f"Trovati {len(modelli_salvati)} modelli. Inizio procedura prototypical")
         for model_path in modelli_salvati:
-            print(f"Inizio istruzione prototypical " {model_path.name})
+            print(f"Inizio istruzione prototypical{model_path.name}")
             TestPrototypical(model_path, config.SEED)
     else:
         train_from_microdrop("resnet18", 0)
