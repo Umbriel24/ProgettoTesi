@@ -1,3 +1,4 @@
+from prototypical.test_prototypical import TestPrototypical
 import sys
 
 from ModelUtility.train_model import create_and_train_model
@@ -22,6 +23,18 @@ def main(num: int = 10):
                     model_name = f"model_{net}_percentage{i*5}_{typeofdrop}_{config.SEED}.pt"
                     if check_model_existence(model_name):
                         TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
+    elif int(num) == 3:
+        print("Valutazione con prototypical network")
+        modelli_salvati = list(config.PERSISTANCE_PATH.glob("*.pt"))
+
+        if not modelli_salvati:
+            print("Nessun modello salvato trovato!")
+            return
+
+        print(f"Trovati {len(modelli_salvati)} modelli. Inizio procedura prototypical")
+        for model_path in modelli_salvati:
+            print(f"Inizio istruzione prototypical " {model_path.name})
+            TestPrototypical(model_path, config.SEED)
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
@@ -34,6 +47,7 @@ def main(num: int = 10):
 
         train_from_microdrop("efficientnet", 0)
         train_from_macrodrop("efficientnet", 0)
+
 
 
 def train_from_macrodrop(subnet_name: str, percentagedrop: int):
