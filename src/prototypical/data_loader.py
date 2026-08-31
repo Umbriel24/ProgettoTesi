@@ -44,4 +44,4 @@ def crea_prototypical_loaders(K=5):
     support_loader = DataLoader(support_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=num_worker)
     val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=num_worker)
 
-    return support_loader, val_loader
+    return support_loader, val_loader, train_subset

@@ -32,13 +32,13 @@ def main(num: int = 10):
             return
             
         print("Genero i Dataloader per il Few-Shot Learning...")
-        support_loader, val_loader = crea_prototypical_loaders(K=5)
+        support_loader, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
         
         for model_path in modelli_salvati:
             print(f"\n--- Analisi Prototipica: {model_path.name} ---")
             try:
                 # Passiamo i loader alla classe!
-                TestPrototypical(model_path, config.SEED, support_loader, val_loader) 
+                TestPrototypical(model_path, config.SEED, support_loader, val_loader, base_train_subset) 
             except ValueError as e:
                 print(f" [SKIPPED] {e}")
                 continue

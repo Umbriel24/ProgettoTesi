@@ -1,11 +1,13 @@
+from DatasetLibrary.dataset_dropper import DatasetDropper
 from modelscreator import ModelsCreator
-import torch
-import torch.nn as nn
 from pathlib import Path
 import torch.nn.functional as F
+import torch
+import torch.nn as nn
+import re
 
 class TestPrototypical:
-    def __init__(self, model_path: Path, seed: int, support_loader, val_loader):
+    def __init__(self, model_path: Path, seed: int, support_loader, val_loader, train_subset_for_dropper):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = model_path
         self.seed = seed
@@ -15,6 +17,11 @@ class TestPrototypical:
         print(f"Caricamento di {self.model_path.name}...")
         nome_file = self.model_path.name.lower()
         
+        # Ricostruzioni classi droppate con il seed
+        self.dropped_classes = []
+        if train_subset_for_dropper is not None:
+            self.dropped_classes = self._extract_dropped_classes(nome_file, train_subset_for_dropper)
+
         # Parsing architettura
         if "resnet18" in nome_file: net_type = "resnet18"
         elif "resnet50" in nome_file: net_type = "resnet50"
@@ -45,6 +52,24 @@ class TestPrototypical:
         prototypes = self.compute_prototypes(self.support_loader)
         self.evaluate_prototypes(prototypes, self.val_loader)
 
+
+    def _extract_dropped_classes(self, nome_file: str, train_subset) -> list:
+        """Estrae i parametri dal nome del file e ricostruisce la lista esatta delle classi eliminate."""
+        # Cerca pattern tipo: percentage10_micro_777
+        match = re.search(r"percentage(\d+)_(micro|macro)_(\d+)", nome_file)
+        if match and match.group(2) == "micro":
+            perc = int(match.group(1)) / 100
+            file_seed = int(match.group(3))
+            
+            # Istanzia il dropper con lo STESSO seed del file
+            dropper = DatasetDropper(train_subset, seed=file_seed)
+            # Simuliamo il drop per farci restituire gli ID rimossi
+            dropper.drop_micro(target_macro='2', percentage=perc)
+            print(f"[{nome_file}] Riconosciute {len(dropper.dropped_micro_ids)} classi droppate in fase di training.")
+            return dropper.dropped_micro_ids
+        return []
+
+        
     def _strip_classifier(self):
         """Amputa le teste Fully Connected per ottenere embedding puri"""
         self.model.fc_micro = nn.Identity()
@@ -80,15 +105,15 @@ class TestPrototypical:
         return prototypes
 
     def evaluate_prototypes(self, prototypes, val_loader):
-        """Testa le immagini del Query Set calcolando la distanza euclidea dai centroidi"""
+        """Testa le immagini sdoppiando l'accuracy tra classi NOTE (viste nel training) e IGNOTE (droppate)."""
         print("Valutazione del Validation Set con distanze euclidee...")
         
-        # Ordiniamo i prototipi per chiavi così da avere una matrice coerente
         classi = sorted(list(prototypes.keys()))
-        prototypes_tensor = torch.stack([prototypes[c] for c in classi]).to(self.device) # Shape: [Num_Classi, Dim_Embedding]
+        prototypes_tensor = torch.stack([prototypes[c] for c in classi]).to(self.device) 
         
-        correct = 0
-        total = 0
+        # Contatori separati
+        correct_seen, total_seen = 0, 0
+        correct_unseen, total_unseen = 0, 0
 
         with torch.no_grad():
             for batch in val_loader:
@@ -98,18 +123,29 @@ class TestPrototypical:
                 outputs = self.model(images)
                 features = outputs[0] if isinstance(outputs, tuple) else outputs
                 
-                # Calcolo Distanza Euclidea: torch.cdist calcola le distanze tra due insiemi di vettori
-                # features: [Batch_Size, Dim_Embedding] | prototypes_tensor: [Num_Classi, Dim_Embedding]
-                # distanze: [Batch_Size, Num_Classi]
                 distanze = torch.cdist(features, prototypes_tensor, p=2.0)
-                
-                # La predizione è la classe con la distanza MINIMA
                 _, argmin = torch.min(distanze, dim=1)
                 predicted_labels = torch.tensor([classi[i] for i in argmin]).to(self.device)
                 
-                total += labels.size(0)
-                correct += (predicted_labels == labels).sum().item()
+                # Assegnazione di ogni singola immagine al suo contatore
+                for i in range(len(labels)):
+                    vera_classe = labels[i].item()
+                    predizione = predicted_labels[i].item()
+                    
+                    if vera_classe in self.dropped_classes:
+                        total_unseen += 1
+                        if predizione == vera_classe: correct_unseen += 1
+                    else:
+                        total_seen += 1
+                        if predizione == vera_classe: correct_seen += 1
 
-        accuracy = 100 * correct / total
-        print(f"Accuracy Prototypical Network: {accuracy:.2f}%")
+        # Calcolo finale delle percentuali
+        acc_seen = (100 * correct_seen / total_seen) if total_seen > 0 else 0
+        acc_unseen = (100 * correct_unseen / total_unseen) if total_unseen > 0 else 0
+        acc_globale = 100 * (correct_seen + correct_unseen) / (total_seen + total_unseen)
+
+        print(f"Accuracy GLOBALE: {acc_globale:.2f}%")
+        print(f"Accuracy CLASSI NOTE (Viste nel training): {acc_seen:.2f}%")
+        if self.dropped_classes:
+            print(f"Accuracy CLASSI IGNOTE (Zero-Shot / Few-Shot puro): {acc_unseen:.2f}%")
         print("-" * 50)
