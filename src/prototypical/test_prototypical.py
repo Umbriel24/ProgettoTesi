@@ -43,7 +43,7 @@ class TestPrototypical:
         self.model.eval() 
         
         # 4. "Amputa" la testa di classificazione trasformandola in un estrattore
-        self._strip_classifier(nome_file)
+        self._strip_classifier()
         
         print("Estrattore di feature pronto!\n")
 
