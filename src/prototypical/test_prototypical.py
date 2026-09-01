@@ -49,10 +49,6 @@ class TestPrototypical:
         self._strip_classifier()
         print("Estrattore di feature pronto!")
 
-        # Esecuzione Pipeline Prototipica
-        prototypes = self.compute_prototypes(self.support_loader)
-        self.risultati = self.evaluate_prototypes(prototypes, self.val_loader)
-
 
     def _extract_dropped_classes(self, nome_file: str, train_subset) -> list:
         """Estrae i parametri dal nome del file e ricostruisce la lista esatta delle classi eliminate."""
@@ -80,7 +76,14 @@ class TestPrototypical:
             
         return []
 
-        
+
+    def run_episode(self, episodic_support_loader):
+        """Esegue un singolo episodio Few-Shot con un nuovo Support Set."""
+        # Riutilizziamo le funzioni che hai già scritto!
+        prototypes = self.compute_prototypes(episodic_support_loader)
+        # Assicurati di passare silenziatore ai print dentro compute/evaluate se non vuoi inondare il terminale
+        return self.evaluate_prototypes(prototypes, self.val_loader)
+
     def _strip_classifier(self):
         """Amputa le teste Fully Connected per ottenere embedding puri"""
         self.model.fc_micro = nn.Identity()

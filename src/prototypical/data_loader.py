@@ -45,3 +45,19 @@ def crea_prototypical_loaders(K=5):
     val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=num_worker)
 
     return support_loader, val_loader, train_subset
+
+def genera_support_loader_episodico(train_subset, K=5, episodio_seed=42):
+    """Genera un nuovo dataloader per il Support Set variando le 5 immagini pescate."""
+    elementi_per_classe = defaultdict(list)
+    for item in train_subset:
+        elementi_per_classe[item[1]].append(item)
+        
+    random.seed(episodio_seed)
+    support_list = []
+    for label, items in elementi_per_classe.items():
+        campioni = random.sample(items, min(K, len(items)))
+        support_list.extend(campioni)
+        
+    support_dataset = PetDataset(data_list=support_list, transform=config.TRAIN_TRANSFORMS)
+    num_worker = os.cpu_count() or 0
+    return DataLoader(support_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=num_worker)

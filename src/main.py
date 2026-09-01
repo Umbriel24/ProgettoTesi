@@ -2,9 +2,11 @@ import csv
 from prototypical.data_loader import crea_prototypical_loaders
 from prototypical.test_prototypical import TestPrototypical
 import sys
+import numpy as np
 
 from ModelUtility.train_model import create_and_train_model
 from ModelUtility.train_model import check_model_existence
+from prototypical.data_loader import genera_support_loader_episodico
 
 import config
 from testmodel import TestModello
@@ -26,33 +28,61 @@ def main(num: int = 10):
                     if check_model_existence(model_name):
                         TestModello(config.PERSISTANCE_PATH / model_name, config.SEED)
     elif int(num) == 3:
-        print("Avvio pipeline di valutazione con Prototypical Networks...")
+    # Generiamo i dati base UNA SOLA VOLTA
+ 
         modelli_salvati = list(config.PERSISTANCE_PATH.glob("*.pt"))
         if not modelli_salvati:
             return
             
-        support_loader, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
+        # Generiamo i dati base UNA SOLA VOLTA
+        _, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
+        NUM_EPISODI = 5 # Inizia con 5 per testare la velocità, poi alza a 10
         
-        # --- PREPARAZIONE FILE CSV ---
-        csv_path = config.PERSISTANCE_PATH / "prototypical_results.csv"
+        csv_path = config.PERSISTANCE_PATH / "prototypical_results_stochastic.csv"
         file_exists = csv_path.exists()
         
         with open(csv_path, mode='a', newline='') as file:
             writer = csv.writer(file)
-            # Scrivi l'intestazione solo se il file è appena stato creato
             if not file_exists:
-                writer.writerow(["Nome Modello", "Acc Globale", "Acc Classi Note", "Acc Classi Ignote", "Campioni Ignoti", "Num Classi Droppate"])
+                writer.writerow(["Nome Modello", "Episodi", "Acc Globale (Media±Std)", "Acc Note (Media±Std)", "Acc Ignote (Media±Std)", "Campioni Ignoti", "Num Classi Droppate"])
 
             for model_path in modelli_salvati:
-                print(f"\n--- Analisi Prototipica: {model_path.name} ---")
+                print(f"\n--- Analisi Stocastica ({NUM_EPISODI} Episodi): {model_path.name} ---")
                 try:
-                    tester = TestPrototypical(model_path, config.SEED, support_loader, val_loader, base_train_subset) 
+                    # Inizializza il modello (pesi caricati una sola volta)
+                    tester = TestPrototypical(model_path, config.SEED, None, val_loader, base_train_subset) 
                     
-                    # Estrai i risultati dalla classe e salvali nel file
-                    acc_glob, acc_seen, acc_unseen, tot_unseen, num_dropped = tester.risultati
-                    writer.writerow([model_path.name, f"{acc_glob:.2f}", f"{acc_seen:.2f}", f"{acc_unseen:.2f}", tot_unseen, num_dropped])
+                    acc_glob_list, acc_seen_list, acc_unseen_list = [], [], []
+                    tot_unseen, num_dropped = 0, 0
                     
-                    # Forza la scrittura su disco immediata per sicurezza
+                    for ep in range(NUM_EPISODI):
+                        # Varia il seed per ogni episodio aggiungendo l'indice
+                        seed_episodio = config.SEED + ep
+                        support_loader_ep = genera_support_loader_episodico(base_train_subset, K=5, episodio_seed=seed_episodio)
+                        
+                        # Esegue l'episodio
+                        acc_glob, acc_seen, acc_unseen, tot_unseen, num_dropped = tester.run_episode(support_loader_ep)
+                        
+                        acc_glob_list.append(acc_glob)
+                        acc_seen_list.append(acc_seen)
+                        acc_unseen_list.append(acc_unseen)
+                        
+                    # Calcolo Statistico (Media e Deviazione Standard)
+                    glob_mean, glob_std = np.mean(acc_glob_list), np.std(acc_glob_list)
+                    seen_mean, seen_std = np.mean(acc_seen_list), np.std(acc_seen_list)
+                    
+                    # Le classi ignote le formattiamo solo se esistono
+                    if num_dropped > 0:
+                        unseen_mean, unseen_std = np.mean(acc_unseen_list), np.std(acc_unseen_list)
+                        unseen_str = f"{unseen_mean:.2f} ± {unseen_std:.2f}"
+                    else:
+                        unseen_str = "0.00 ± 0.00"
+                        
+                    glob_str = f"{glob_mean:.2f} ± {glob_std:.2f}"
+                    seen_str = f"{seen_mean:.2f} ± {seen_std:.2f}"
+
+                    print(f"Risultato Finale -> Ignote: {unseen_str}% | Note: {seen_str}%")
+                    writer.writerow([model_path.name, NUM_EPISODI, glob_str, seen_str, unseen_str, tot_unseen, num_dropped])
                     file.flush() 
                     
                 except ValueError as e:
