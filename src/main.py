@@ -36,7 +36,7 @@ def main(num: int = 10):
             
         # Generiamo i dati base UNA SOLA VOLTA
         _, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
-        NUM_EPISODI = 5 # Inizia con 5 per testare la velocità, poi alza a 10
+        NUM_EPISODI = 30 # Inizia con 5 per testare la velocità, poi alza a 10
         
         csv_path = config.PERSISTANCE_PATH / "prototypical_results_stochastic.csv"
         file_exists = csv_path.exists()
