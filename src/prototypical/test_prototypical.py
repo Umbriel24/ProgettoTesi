@@ -158,6 +158,8 @@ class TestPrototypical:
         print(f"Accuracy GLOBALE: {acc_globale:.2f}%")
         print(f"Accuracy CLASSI NOTE (Viste nel training): {acc_seen:.2f}%")
         if self.dropped_classes:
-            print(f"Accuracy CLASSI IGNOTE (Zero-Shot / Few-Shot puro): {acc_unseen:.2f}%")
+            print(f"Accuracy CLASSI IGNOTE: {acc_unseen:.2f}% (su {total_unseen} campioni, {len(self.dropped_classes)} classi)")
         print("-" * 50)
-        return acc_globale, acc_seen, acc_unseen
+        
+        # Restituiamo 5 valori al posto di 3
+        return acc_globale, acc_seen, acc_unseen, total_unseen, len(self.dropped_classes)

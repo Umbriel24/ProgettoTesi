@@ -41,7 +41,7 @@ def main(num: int = 10):
             writer = csv.writer(file)
             # Scrivi l'intestazione solo se il file è appena stato creato
             if not file_exists:
-                writer.writerow(["Nome Modello", "Acc Globale", "Acc Classi Note", "Acc Classi Ignote"])
+                writer.writerow(["Nome Modello", "Acc Globale", "Acc Classi Note", "Acc Classi Ignote", "Campioni Ignoti", "Num Classi Droppate"])
 
             for model_path in modelli_salvati:
                 print(f"\n--- Analisi Prototipica: {model_path.name} ---")
@@ -49,8 +49,8 @@ def main(num: int = 10):
                     tester = TestPrototypical(model_path, config.SEED, support_loader, val_loader, base_train_subset) 
                     
                     # Estrai i risultati dalla classe e salvali nel file
-                    acc_glob, acc_seen, acc_unseen = tester.risultati
-                    writer.writerow([model_path.name, f"{acc_glob:.2f}", f"{acc_seen:.2f}", f"{acc_unseen:.2f}"])
+                    acc_glob, acc_seen, acc_unseen, tot_unseen, num_dropped = tester.risultati
+                    writer.writerow([model_path.name, f"{acc_glob:.2f}", f"{acc_seen:.2f}", f"{acc_unseen:.2f}", tot_unseen, num_dropped])
                     
                     # Forza la scrittura su disco immediata per sicurezza
                     file.flush() 
