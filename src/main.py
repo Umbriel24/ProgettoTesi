@@ -201,13 +201,25 @@ def main(num: int = 10):
         for nome_file in modelli_target:
             path = config.PERSISTANCE_PATH / nome_file
             if path.exists():
-                # Il tester ricalcola i drop esatti usando il seed
                 tester = TestPrototypical(path, config.SEED, None, val_loader, base_train_subset)
                 
-                # Assicurati che l'attributo si chiami dropped_classes nel tuo tester
-                id_droppati = tester.dropped_classes 
-                razze_escluse = [id_to_name[i] for i in id_droppati]
+                # --- INIZIO BLOCCO BULLETPROOF ---
+                id_to_name = {}
+                for item in base_train_subset:
+                    percorso_file = str(item[0])
+                    micro_label = int(item[1]) # FORZIAMO A INTERO!
+                    
+                    if micro_label not in id_to_name:
+                        nome_file = percorso_file.split('/')[-1] 
+                        nome_razza = nome_file.rsplit('_', 1)[0] 
+                        id_to_name[micro_label] = nome_razza
                 
+                id_droppati = tester.dropped_classes 
+                
+                # Usiamo .get() che è sicuro contro i KeyError, e forziamo 'i' a intero
+                razze_escluse = [id_to_name.get(int(i), f"ID non trovato ({i})") for i in id_droppati]
+                # --- FINE BLOCCO BULLETPROOF ---
+
                 print(f"\n{nome_file} ({len(id_droppati)} classi droppate):")
                 for razza in razze_escluse:
                     print(f" - {razza}")
