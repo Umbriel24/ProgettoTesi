@@ -88,6 +88,33 @@ def main(num: int = 10):
                 except ValueError as e:
                     print(f" [SKIPPED] {e}")
                     continue
+    
+    elif int(num) == 4:
+        print("\n=== INDAGINE QUALITATIVA SUL CROLLO DEL 20% ===")
+        _, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
+        nomi_razze = base_train_subset.dataset.classes
+
+        modelli_target = [
+            "model_efficientnet_percentage15_micro_777.pt",
+            "model_efficientnet_percentage20_micro_777.pt",
+            "model_efficientnet_percentage25_micro_777.pt"
+        ]
+
+        for nome_file in modelli_target:
+            path = config.PERSISTANCE_PATH / nome_file
+            if path.exists():
+                # Il tester ricalcola i drop esatti usando il seed
+                tester = TestPrototypical(path, config.SEED, None, val_loader, base_train_subset)
+                
+                # Assicurati che l'attributo si chiami dropped_classes nel tuo tester
+                id_droppati = tester.dropped_classes 
+                razze_escluse = [nomi_razze[i] for i in id_droppati]
+                
+                print(f"\n{nome_file} ({len(id_droppati)} classi droppate):")
+                for razza in razze_escluse:
+                    print(f" - {razza}")
+            else:
+                print(f"[ERRORE] File mancante: {nome_file}")
     else:
         train_from_microdrop("resnet18", 0)
         train_from_macrodrop("resnet18", 0)
