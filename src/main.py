@@ -127,11 +127,10 @@ def main(num: int = 10):
                 writer.writerow(["Nome Modello", "Episodi", "Acc Globale (Media±Std)", "Acc Note (Media±Std)", "Acc Ignote (Media±Std)", "Campioni Ignoti", "Num Classi Droppate"])
 
             for model_path in modelli_salvati:
-                for model_path in modelli_salvati:
-                # Se è già nel Set, passa al prossimo file
-                    if model_path.name in modelli_gia_processati:
-                        print(f" [SKIP] {model_path.name} (Già calcolato)")
-                        continue
+            # Se è già nel Set, passa al prossimo file
+                if model_path.name in modelli_gia_processati:
+                    print(f" [SKIP] {model_path.name} (Già calcolato)")
+                    continue
                 
                 print(f"\n--- Analisi Stocastica ({NUM_EPISODI} Episodi): {model_path.name} ---")
                 # ... il resto del tuo codice con il blocco try/except rimane identico ...
