@@ -179,7 +179,18 @@ def main(num: int = 10):
     elif int(num) == 4:
         print("\n=== INDAGINE QUALITATIVA SUL CROLLO DEL 20% ===")
         _, val_loader, base_train_subset = crea_prototypical_loaders(K=5)
-        nomi_razze = base_train_subset.dataset.classes
+        # Costruiamo il dizionario dinamico {ID_Classe: "Nome_Razza"} dal file path
+        id_to_name = {}
+        for item in base_train_subset:
+            percorso_file = str(item[0]) # es: "/path/dataset/Abyssinian_12.jpg"
+            micro_label = item[1]        # es: 0
+            
+            if micro_label not in id_to_name:
+                # Estraiamo "Abyssinian_12.jpg"
+                nome_file = percorso_file.split('/')[-1] 
+                # Separiamo all'ultimo underscore per togliere il numero: "Abyssinian"
+                nome_razza = nome_file.rsplit('_', 1)[0] 
+                id_to_name[micro_label] = nome_razza
 
         modelli_target = [
             "model_efficientnet_percentage15_micro_777.pt",
@@ -195,7 +206,7 @@ def main(num: int = 10):
                 
                 # Assicurati che l'attributo si chiami dropped_classes nel tuo tester
                 id_droppati = tester.dropped_classes 
-                razze_escluse = [nomi_razze[i] for i in id_droppati]
+                razze_escluse = [id_to_name[i] for i in id_droppati]
                 
                 print(f"\n{nome_file} ({len(id_droppati)} classi droppate):")
                 for razza in razze_escluse:
