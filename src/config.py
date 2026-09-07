@@ -25,7 +25,7 @@ temp_IMAGES_PATH = next(BASE_DIR.glob("**/Abyssinian_1.jpg"))
 IMAGES_PATH = temp_IMAGES_PATH.parent
 
 # IPER PARAMETRI
-SEED = 777
+SEED = 42
 BATCH_SIZE = 32
 IMAGE_SIZE = (224, 224)
 

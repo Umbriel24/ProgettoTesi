@@ -1,23 +1,30 @@
 import csv
-from prototypical.data_loader import crea_prototypical_loaders
-from prototypical.test_prototypical import TestPrototypical
 import sys
 import numpy as np
+import pandas as pd
+import os
+import glob
 
+from pathlib import Path
 from ModelUtility.train_model import create_and_train_model
 from ModelUtility.train_model import check_model_existence
 from prototypical.data_loader import genera_support_loader_episodico
-
-import config
+from prototypical.data_loader import crea_prototypical_loaders
+from prototypical.test_prototypical import TestPrototypical
 from testmodel import TestModello
 from csvutility import utility_csv
-def main(num: int = 10):
+
+
+
+def main(num: int = 0):
         
     print("Scrivi il numero per continuare l'esecuzione")
     print("1: Cerca il miglior modello tra le reti")
     print("2: Testa tutti i modelli")
 
-    if int(num) == 1:
+    if int(num) == 0:
+        return
+    elif int(num) == 1:
         utility_csv.trova_miglior_percentage()
     elif int(num) == 2:
         nets = ["resnet18", "resnet50", "densenet", "efficientnet"]
@@ -225,19 +232,14 @@ def main(num: int = 10):
                     print(f" - {razza}")
             else:
                 print(f"[ERRORE] File mancante: {nome_file}")
+    
+    elif int(num) == 5:
+        crea_csv_unito("/home/umbriel24/Documenti/Tesi/")
     else:
-        train_from_microdrop("resnet18", 0)
-        train_from_macrodrop("resnet18", 0)
-
-        train_from_microdrop("resnet50", 0)
-        train_from_macrodrop("resnet50", 0)
-
-        train_from_microdrop("densenet", 0)
-        train_from_macrodrop("densenet", 0)
-
-        train_from_microdrop("efficientnet", 0)
-        train_from_macrodrop("efficientnet", 0)
-
+        nets = ["resnet18", "resnet50", "densenet", "efficientnet"]
+        for net in nets:
+            train_from_macrodrop(net, 0)
+            train_from_microdrop(net, 0)
 
 
 def train_from_macrodrop(subnet_name: str, percentagedrop: int):
@@ -272,3 +274,88 @@ if __name__ == "__main__":
     else:
         num = 0
     main(num)
+
+
+
+def crea_csv_unito(path_directory):
+    """
+    Unisce tutti i CSV report_*_globali.csv delle diverse reti in un unico file.
+    
+    Args:
+        path_directory (str): Path della directory contenente i file CSV
+    
+    Returns:
+        pandas.DataFrame: DataFrame unito con tutti i dati
+    """
+    
+    # Verifica che la directory esista
+    if not os.path.exists(path_directory):
+        print(f"✗ Errore: La directory '{path_directory}' non esiste!")
+        return None
+    
+    # Costruisci il pattern di ricerca
+    pattern = os.path.join(path_directory, "report_*_globali.csv")
+    files = glob.glob(pattern)
+    
+    if not files:
+        print(f"Nessun file trovato con il pattern 'report_*_globali.csv' in '{path_directory}'")
+        return None
+    
+    print(f"Trovati {len(files)} file in '{path_directory}':")
+    for f in files:
+        print(f"  - {os.path.basename(f)}")
+    
+    all_dataframes = []
+    
+    for file in files:
+        try:
+            # Leggi il CSV
+            df = pd.read_csv(file)
+            
+            # Estrai il nome della rete dal filename
+            filename = Path(file).stem  # toglie l'estensione .csv
+            
+            # Estrai la parte tra "report_" e "_globali"
+            if filename.startswith("report_") and filename.endswith("_globali"):
+                # Togli "report_" dall'inizio
+                temp = filename[7:]  # len("report_") = 7
+                # Togli "_globali" dalla fine
+                network_name = temp[:-8]  # len("_globali") = 8
+            else:
+                # Fallback: usa il filename completo
+                network_name = filename
+            
+            # Aggiungi la colonna con il nome della rete
+            df['network'] = network_name
+            
+            all_dataframes.append(df)
+            print(f"  ✓ {os.path.basename(file)}: {len(df)} righe, network='{network_name}'")
+            
+        except Exception as e:
+            print(f"  ✗ Errore nel leggere {os.path.basename(file)}: {e}")
+    
+    if not all_dataframes:
+        print("Nessun file processato correttamente!")
+        return None
+    
+    # Unisci tutti i dataframe
+    print("\nUnione dei file...")
+    merged_df = pd.concat(all_dataframes, ignore_index=True)
+    
+    # Riordina le colonne per mettere 'network' all'inizio
+    cols = ['network'] + [col for col in merged_df.columns if col != 'network']
+    merged_df = merged_df[cols]
+    
+    # Salva il file unito nella stessa directory
+    output_file = os.path.join(path_directory, "report_tutte_reti_globali_unito.csv")
+    merged_df.to_csv(output_file, index=False)
+    
+    print(f"\nFile unito salvato come: {output_file}")
+    print(f"Totale righe: {len(merged_df)}")
+    print(f"Colonne: {list(merged_df.columns)}")
+    print("\nNetwork trovate:")
+    for net in merged_df['network'].unique():
+        count = len(merged_df[merged_df['network'] == net])
+        print(f"  - {net}: {count} righe")
+    
+    return merged_df
