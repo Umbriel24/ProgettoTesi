@@ -1,4 +1,4 @@
-from src import config
+import config
 import csv
 import sys
 import numpy as np
