@@ -87,7 +87,7 @@ def TestModello(model_path, seed=0):
                 class_buckets[micro_class].append(item)
 
             train_subset_stratified = []
-            samples_per_class = 50
+            samples_per_class = config.CIFAR_SAMPLES_PER_CLASS
             for c_label, items in class_buckets.items():
                 train_subset_stratified.extend(random.sample(items, samples_per_class))
 

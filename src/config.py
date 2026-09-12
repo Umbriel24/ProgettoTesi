@@ -82,3 +82,5 @@ LEARNING_RATE = 0.001
 ALPHA = 1.0 # peso loss micro
 BETA = 0.5 # peso loss macro
 PRETRAINED = True
+
+CIFAR_SAMPLES_PER_CLASS = 200

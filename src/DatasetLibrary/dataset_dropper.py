@@ -44,72 +44,57 @@ class DatasetDropper:
         return other_samples + kept_target_samples
 
     def drop_micro(self, target_macro: str, percentage: float) -> list:
-            """
-            STRATEGIA B (Non Stratificata): Rimuove lo STESSO NUMERO ASSOLUTO di campioni
-            calcolato in drop_macro, ma eliminando interamente intere microclassi (razze).
-            """
+        """
+        Rimuove intere microclassi dal dataset.
+        """
 
-            if not (0.0 <= percentage <= 1.0):
-                raise ValueError("La percentuale deve essere compresa tra 0.0 e 1.0")
+        if not (0.0 <= percentage <= 1.0):
+            raise ValueError("Errore, la percentuale non è compresa tra 0 e 1")
 
-            rng = random.Random(self.seed)
+        rng = random.Random(self.seed)
 
-            # Reset delle razze eliminate per questa esecuzione
-            self.dropped_micro_ids = set()
+        self.dropped_micro_ids = set()
 
-            target_samples = [x for x in self.data_list if str(x[2]) == str(target_macro)]
-            other_samples = [x for x in self.data_list if str(x[2]) != str(target_macro)]
+        micro_groups = defaultdict(list)
 
-            # Calcoliamo il "budget" esatto di campioni da rimuovere per un confronto equo
-            total_target_count = len(target_samples)
-            budget_to_remove = round(total_target_count * percentage)
+        for sample in self.data_list:
+            micro_groups[sample[1]].append(sample)
 
-            # Raggruppiamo i campioni per microclasse
-            micro_groups = defaultdict(list)
-            for sample in target_samples:
-                micro_groups[sample[1]].append(sample)
+        micro_keys = sorted(micro_groups.keys())
 
-            # Ordiniamo le chiavi per garantire che lo shuffle sia indipendente dal sistema operativo
-            sorted_micro_keys = sorted(list(micro_groups.keys()))
-            rng.shuffle(sorted_micro_keys)
+        num_classes_to_drop = round(len(micro_keys) * percentage)
 
-            kept_micro_samples = []
-            remaining_budget = budget_to_remove
+        rng.shuffle(micro_keys)
 
-            # Eliminiamo intere classi fino a esaurimento del budget
-            for micro_key in sorted_micro_keys:
-                samples = list(micro_groups[micro_key])
+        classes_to_drop = set(micro_keys[:num_classes_to_drop])
 
-                if remaining_budget <= 0:
-                    # Budget esaurito: questa classe viene tenuta interamente
-                    kept_micro_samples.extend(samples)
-                elif len(samples) <= remaining_budget:
-                    # La classe è più piccola del budget rimasto: la eliminiamo TUTTA
-                    remaining_budget -= len(samples)
-                    # Razza eliminata del tutto: il modello non la vedrà mai in training.
-                    self.dropped_micro_ids.add(micro_key)
-                else:
-                    # La classe è più grande del budget: eliminiamo solo la quota rimanente
-                    rng.shuffle(samples)
-                    num_to_keep = len(samples) - remaining_budget
-                    kept_micro_samples.extend(samples[:num_to_keep])
-                    remaining_budget = 0 # Budget azzerato
+        self.dropped_micro_ids = classes_to_drop
 
-            return other_samples + kept_micro_samples
+        kept_samples = [
+            sample
+            for sample in self.data_list
+            if sample[1] not in classes_to_drop
+        ]
+
+        return kept_samples
 
     @staticmethod
-    def remove_micro_classes(data_list: list, micro_ids_to_remove, target_macro: str) -> list:
+    def remove_micro_classes(
+        data_list: list,
+        micro_ids_to_remove,
+        target_macro: str = None
+    ) -> list:
         """
-        Rimuove da data_list tutti i campioni delle razze (microclassi) indicate,
-        limitandosi alla macroclasse target. Usato per applicare a validation/test
-        lo STESSO drop di razze applicato al training (Opzione 1: si valuta solo
-        sulle razze che il modello conosce ancora).
+        Rimuove da data_list tutti i campioni appartenenti alle
+        microclassi indicate, indipendentemente dalla macroclasse.
         """
+
         if not micro_ids_to_remove:
             return list(data_list)
 
         ids = set(micro_ids_to_remove)
+
         return [
             x for x in data_list
-            if not (str(x[2]) == str(target_macro) and x[1] in ids)
+            if x[1] not in ids
         ]
