@@ -54,7 +54,11 @@ def create_and_train_model(type_of_net: str, pre_trained_value: bool, percentage
 
         elif dataset_name == "cifar100":
             # Path base in Kaggle. Assicurati che corrisponda alla tua directory!
-            cifar_path = "/kaggle/input/cifar-100-python/cifar-100-python"
+            cifar_path = getattr(
+                config,
+                "CIFAR_PATH",
+                "/content/datasets/cifar-100-python"
+            )
             if hasattr(config, 'CIFAR_PATH'):
                 cifar_path = config.CIFAR_PATH
 

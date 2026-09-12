@@ -10,7 +10,7 @@ from pathlib import Path
 if os.path.exists("/teamspace"):
     # 1. Stiamo in LIGHTNING AI (Priorità massima qui)
     BASE_DIR = Path(__file__).resolve().parent.parent
-    CIFAR_PATH = str(BASE_DIR / "cifar-100-python") 
+    CIFAR_PATH = "/content/datasets/cifar-100-python"    
     PERSISTANCE_PATH = Path("/teamspace/s3_folders/persistenza")
     os.makedirs(PERSISTANCE_PATH, exist_ok=True)
 
