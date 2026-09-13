@@ -8,6 +8,7 @@ import torch
 
 from ModelUtility.train_model import create_and_train_model
 from testmodel import TestModello
+from prototypical_network import evaluate_prototypical_model
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Progetto Tesi: Micro vs Macro Drop")
@@ -18,8 +19,12 @@ def parse_args():
     parser.add_argument('--dataset', type=str, choices=['pets', 'cifar100'],
                         default='cifar100', help="Dataset su cui operare")
 
-    parser.add_argument('--op', type=str, choices=['0', '1', '2'],
-                        default='1', help="0: Train Completo, 1: Test Veloce, 2: Testa Salvati")
+    parser.add_argument('--op', type=str, choices=['0', '1', '2', '3'],
+                        default='1', help="0: Train Completo, 1: Test Veloce, 2: Testa Salvati, 3: Prototypical Few-Shot (Classi Non Viste)")
+
+    parser.add_argument('--shots', type=int, default=5, help="Numero di immagini di supporto per classe non vista (default: 5)")
+
+    parser.add_argument('--model_path', type=str, default=None, help="Percorso opzionale di un singolo modello .pt da valutare con ProtoNet")
 
     return parser.parse_args()
 
@@ -86,6 +91,32 @@ def main():
             print(f"Nessun modello trovato per il dataset {dataset_name}.")
         else:
             print(f"Test completato su {modelli_testati} modelli.")
+
+    elif op_choice == "3":
+        print(f"Operazione: Valutazione Prototypical Networks Few-Shot ({args.shots} shots) sulle classi non viste")
+        print(f"\n--- INIZIO VALUTAZIONE PROTOTYPICAL ({dataset_name.upper()}) ---")
+        if args.model_path:
+            if os.path.exists(args.model_path):
+                evaluate_prototypical_model(args.model_path, shots=args.shots, seed=args.seed)
+            else:
+                print(f"File modello specificato non trovato: {args.model_path}")
+        else:
+            if not os.path.exists(config.PERSISTANCE_PATH):
+                print("Cartella persistenza non trovata!")
+                return
+
+            modelli_testati = 0
+            for file in sorted(os.listdir(config.PERSISTANCE_PATH)):
+                if file.endswith(".pt") and dataset_name in file and "micro" in file:
+                    percorso_modello = config.PERSISTANCE_PATH / file
+                    success = evaluate_prototypical_model(percorso_modello, shots=args.shots, seed=args.seed)
+                    if success:
+                        modelli_testati += 1
+
+            if modelli_testati == 0:
+                print(f"Nessun modello micro-drop valido trovato per il dataset {dataset_name} in {config.PERSISTANCE_PATH}.")
+            else:
+                print(f"Valutazione Prototypical completata su {modelli_testati} modelli.")
 
 
 if __name__ == "__main__":
